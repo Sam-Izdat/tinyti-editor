@@ -1,8 +1,8 @@
 // Note: __APP_NAME__, __APP_VERSION__ and __BUILD_TYPE__ are provided by vite config
 
 // URL
-export const APP_HOST_PATH = 'https://sam-izdat.github.io/webui-editor-skeleton/';
-export const APP_BASE_PATH = '/webui-editor-skeleton';
+export const APP_HOST_PATH = 'https://sam-izdat.github.io/tinyti-editor/';
+export const APP_BASE_PATH = '/tinyti-editor';
 
 export const cfg = {
   APP_HOST_PATH,
@@ -10,10 +10,10 @@ export const cfg = {
 
   // GENERAL
   //------------------
-  APP_TITLE:        'Webui Editor Skeleton',
-  APP_SHORT_NAME:   'WES',
-  APP_DESCRIPTION:  'A web UI template for code editors.',  
-  APP_THEME:        'hamlindigo', // skeleton UI theme
+  APP_TITLE:        'tinyti editor',
+  APP_SHORT_NAME:   'tteditor',
+  APP_DESCRIPTION:  'A web-based, client-side code editor for taichi.js (tinyti.js fork)',  
+  APP_THEME:        'rocket', // skeleton UI theme
 
   // LOGGING
   //------------------
@@ -26,10 +26,10 @@ export const cfg = {
   //------------------
   PWA_START_URL:     APP_HOST_PATH,
   PWA_SCOPE:         APP_HOST_PATH,
-  PWA_FILE_EXT:      '.myscript',
-  PWA_FILE_MIME_TYPE:'application/x-my-custom-script',
+  PWA_FILE_EXT:      '.tinyti',
+  PWA_FILE_MIME_TYPE:'application/x-tinyti',
   PWA_FILE_ACTION:   APP_HOST_PATH + 'open-file',
-  PWA_URL_PATTERN:   'myscript://*',
+  PWA_URL_PATTERN:   'tinyti://*',
   PWA_THEME_COLOR:   '#3B4762', // theme color for app status/title bars etc
   PWA_BG_COLOR:      '#3B4762', // splash screen background
   PWA_ORIENTATION:   'any',     // setting 'landscape' will force PWA into landscape mode at all times
@@ -38,7 +38,7 @@ export const cfg = {
   //------------------
 
   // IndexedDB database name
-  IDB_DB_NAME:        'WebEditorStorage',
+  IDB_DB_NAME:        'TinytiEditorStorage',
 
   // IndexedDB store name for script/document sessions
   IDB_DOC_STORE_NAME: 'docsessions',
@@ -46,8 +46,11 @@ export const cfg = {
   // IndexedDB store name for archive screenshots/thumbnails
   IDB_THUMBNAIL_NAME: 'docthumbs',
 
+  // LocalStorage prefix
+  LS_PREFIX:          'tt-script-',
+
   // the programming language monaco editor should use
-  EDITOR_LANGUAGE:    'c',
+  EDITOR_LANGUAGE:    'javascript',
 
   // attempt to guess at "raw" URLs if given an HTML page address to import
   GUESS_RAW_URL:      true,

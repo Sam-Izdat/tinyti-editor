@@ -30,6 +30,10 @@ export default {
 						name: 'hamlindigo',
 						enhancements: true,
 					},
+					{
+						name: 'rocket',
+						enhancements: true,
+					},
 				],
 			},
 		}),

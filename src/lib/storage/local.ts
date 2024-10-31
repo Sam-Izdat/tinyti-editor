@@ -1,6 +1,7 @@
 import type DocumentSession from '$lib/doc_types';
 import { Log } from '$lib';
-const prefix = 'saved-doc-';
+import { cfg } from '$root/webui.config.js';
+const prefix = cfg.LS_PREFIX;
 
 export const save = async (session: DocumentSession) => {
   const key = prefix + session.docID;
@@ -37,10 +38,10 @@ export const rename = async (uuid: string, newName: string) => {
 export const search = async (substring: string) => {
   const searchLower = substring.toLowerCase();
   let res =Object.keys(localStorage)
-    .filter(key => key.startsWith('saved-doc'))
+    .filter(key => key.startsWith(prefix))
     .map(key => {
         const doc = JSON.parse(localStorage.getItem(key));
-        return { id: key.replace('saved-doc-', ''), ...doc };
+        return { id: key.replace(prefix, ''), ...doc };
     })
     .filter(doc => doc.docName.toLowerCase().includes(searchLower));
   return res;
@@ -49,10 +50,10 @@ export const search = async (substring: string) => {
 // Loads everything at present. Content can actually be excluded.
 export const list = async (descending = true) => {
   return Object.keys(localStorage)
-    .filter(key => key.startsWith('saved-doc'))
+    .filter(key => key.startsWith(prefix))
     .map(key => {
         const doc = JSON.parse(localStorage.getItem(key));
-        return { id: key.replace('saved-doc-', ''), ...doc };
+        return { id: key.replace(prefix, ''), ...doc };
     })
     .sort((a, b) => {
         const dateA = new Date(a.dateSaved).getTime();
