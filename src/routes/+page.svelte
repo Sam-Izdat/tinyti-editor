@@ -68,6 +68,8 @@
 		position: 'right',
 	};
 
+	let monacoEditor: editor.IStandaloneCodeEditor;
+
 	// Unsaved changes guardrails
   beforeNavigate(({ cancel }) => {
 	  if (dsCurrentSession.unsavedChanges) {
@@ -114,22 +116,28 @@
 
   let autoBuildTimeoutID: number;
 
-  const reqBuild = () => {
+  const reqBuild = async () => {
   	Log.clearScriptLog();
 
+
   	let buildSuccessFul = true;
+  	let editorVal = monacoEditor.getValue()
+		try{
+			eval(editorVal);
+		} catch(e){
+			buildSuccessFul = false;
+			Log.scriptError(e);
+		}
+
   	let flashCol = buildSuccessFul 
 			? ($isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1])
 			: ($isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1]);
   	pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
 
-  	// Insert your build code here
 
   	if (buildSuccessFul) {
-  		Log.scriptSuccess('Build successful (except not really because this is a template)')	
-  	} else {
-  		Log.scriptError('There was a problem! (except not really because this is a template)')
-  	}
+  		Log.scriptSuccess('Build successful')	
+  	} 
   	
   }
 	const reqNewDoc = () => {
@@ -297,7 +305,6 @@
 		})
 	};
 
-	let monacoEditor: editor.IStandaloneCodeEditor;
 
   $: fileSystemAccessSupported = false;
   $: persistentStorageAvailable = false;
@@ -330,6 +337,11 @@
 		  	clearTimeout(autoBuildTimeoutID);  	
 		  	autoBuildTimeoutID = setTimeout(reqBuild, cfg.AUTOBUILD_DELAY);
       }
+
+			let elCanvas = document.querySelector('#result_canvas')
+		  elCanvas.width = 800;
+		  elCanvas.height = 800;
+
     });
 
 		// Populate panes
@@ -563,10 +575,11 @@
 		</div>
   	<div id="ct2">
   		<!-- Replace this with actual canvas -->
-  		<div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-[100%] w-[100%]">
+  		<canvas id="result_canvas"></canvas>
+  		<!-- <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-[100%] w-[100%]">
   			<span class="badge variant-soft">This is where the canvas would be.</span>
   			<span class="badge variant-soft">Current view: {$currentView}</span>
-  		</div>
+  		</div> -->
   		<!-- / Replace this with actual canvas -->
     </div>	      
   	<div id="ct3" class="divide-y divide-surface-400/10">
