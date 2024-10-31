@@ -117,17 +117,20 @@
   let autoBuildTimeoutID: number;
 
   const reqBuild = async () => {
+  	window.shouldStop = true;
   	Log.clearScriptLog();
-
 
   	let buildSuccessFul = true;
   	let editorVal = monacoEditor.getValue()
-		try{
-			eval(editorVal);
-		} catch(e){
-			buildSuccessFul = false;
-			Log.scriptError(e);
-		}
+  	setTimeout(async () => {
+			try{
+				window.shouldStop = false;
+				eval("(async () => {" + editorVal + "})()");
+			} catch(e){
+				buildSuccessFul = false;
+				Log.scriptError(e);
+			}	
+  	}, 120);
 
   	let flashCol = buildSuccessFul 
 			? ($isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1])
@@ -151,6 +154,7 @@
 		} else {
 			docHandler.newDoc();
 		}
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	};
 
@@ -169,6 +173,7 @@
 			docHandler.loadDoc(uuid, adapter); 
 			drawerStore.close();
 		}
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	};
 
@@ -184,6 +189,7 @@
 			docHandler.forkDoc();
 		}
 		reqRenameDoc();
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	};
 
@@ -200,6 +206,7 @@
 		}
 		modalStore.close();
 		reqRenameDoc(baseFilename ?? '');
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	};
 
@@ -267,6 +274,7 @@
 		} else {
 			docHandler.loadVersion(parseInt(v));
 		}
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	};
 
@@ -281,6 +289,7 @@
 		} else {
 			Log.toastInfo('no changes to revert')
 		}
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	}
 
@@ -293,6 +302,7 @@
 			txtConfirm: 'Rename',
 			onConfirm: (inputVal) => { docHandler.renameDoc(inputVal); }
 		})
+		window.shouldStop = true;
 		Log.clearScriptLog();
 	};
 
@@ -332,6 +342,7 @@
     monacoEditor.onDidChangeModelContent(() => {
       const content = monacoEditor.getValue();
       docHandler.updateDoc(content);
+      window.shouldStop = true;
   		Log.clearScriptLog();
       if ($isAutoBuild) {
 		  	clearTimeout(autoBuildTimeoutID);  	
