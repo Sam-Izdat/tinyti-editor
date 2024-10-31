@@ -130,6 +130,9 @@
 				buildSuccessFul = false;
 				Log.scriptError(e);
 			}	
+	  	if (buildSuccessFul) {
+	  		Log.scriptSuccess('Build successful')	
+	  	} 
   	}, 120);
 
   	let flashCol = buildSuccessFul 
@@ -138,9 +141,6 @@
   	pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
 
 
-  	if (buildSuccessFul) {
-  		Log.scriptSuccess('Build successful')	
-  	} 
   	
   }
 	const reqNewDoc = () => {
