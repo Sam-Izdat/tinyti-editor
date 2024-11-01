@@ -1,0 +1,193 @@
+<!-- src/routes/sandbox/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandbox Page</title>
+  <script src="tinyti.umd.js"></script>
+  
+  <script>
+
+    window.__running = false;       // whether animation is running
+    window.__scriptLen = 0;         // length of script (for scope)
+    window.__stackTrace = [];       // persists from build-start to build-start
+    window.VIEWPORT_WIDTH = 512;    // width of parent UI viewport (max canvas width)
+    window.VIEWPORT_HEIGHT = 512;   // height of parent UI viewport (max canvas height)
+
+    // extract pertinent info from stack trace (chromium & FF)
+    window.__parseLine = (line) => {
+      const match = line.match(/(?:<anonymous>|eval):(\d+):(\d+)/);
+      if (match) {
+        const [_, lineno, colno] = match;
+        if (lineno > (window.__scriptLen + 1)) return null; // out of range
+        const sourceMatch = line.match(/(.+?(?=@))|(?:at\s+)(\w+)/);
+        let source = sourceMatch !== null ? sourceMatch[1] || sourceMatch[2] : '';
+        if (source == 'eval' || source == '') source = 'root';
+        return [source, lineno - 1, colno];
+      }
+      return null;
+    }
+
+    // herein we try to keep the errors piped to the editor and prevent them from bubbling up
+    window.onerror = (message, source, lineno, colno, error) => {
+      const err = `Unhandled error caught by window.onerror: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
+      console.log(err);
+      window.txError(err);
+      return true; // (try to) prevent error from propagating to the console
+    };
+    window.addEventListener('error', e => {
+        const { message, source, lineno, colno, error } = e;
+        const err = `Unhandled error caught by event listener: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
+        console.error(err);
+        window.txError(err);
+        e.preventDefault();
+    });
+    window.onunhandledrejection = (e) => {
+      if (e.reason && e.reason.stack) {
+        const stackLines = e.reason.stack.split("\n");
+        
+        stackLines.forEach(line => {
+          let step = window.__parseLine(line);
+          if (step) window.__stackTrace.push(step);
+          window.txStackLine(step[0], step[1], step[2]);
+        });
+      }
+      const err = 'caught in onunhandledrejection: ' + e.reason || 'unknown async error';
+      console.error(err);
+      window.txError(err);
+      e.preventDefault();
+      return true; // (try to) prevent error from propagating to the console
+    };
+    // };
+  </script>
+</head>
+<body>
+  <canvas id="result_canvas"></canvas>
+  <script>
+
+    /*
+
+    tx-harbor-build
+    tx-harbor-stop
+    tx-harbor-status
+
+    tx-sandbox-build-success
+    tx-sandbox-build-error
+    */
+
+    window.addEventListener('message', (e) => rxHarbor(e));
+
+    // receive (serialized w/ structuredClone)
+    window.rxHarbor = (e) => {
+      // if (e.origin !== 'parent-origin') return; 
+
+      const { tx } = e.data.tx;
+      switch (tx) {
+        case 'harbor-build':
+          window.__stackTrace = [];
+          window.__running = true;
+          window.shouldStop = false;
+          window.digest(e.data.script, e.data.width, e.data.height);
+          window.parent.postMessage({ tx: 'sandbox-build-start' }, e.origin);
+          break;
+        case 'harbor-stop':
+          window.__running = false;
+          window.shouldStop = true;
+          window.parent.postMessage({ tx: 'sandbox-render-stop' }, e.origin);
+          break;
+        case 'harbor-status':          
+          window.parent.postMessage({ tx: 'sandbox-status-report', 
+            status: {
+              running: window.__running,
+              stackTrace: window.__stackTrace
+            }
+          }, e.origin);
+          break;
+        case 'harbor-resize':
+          let elCanvas = document.querySelector('#result_canvas');                
+          elCanvas.width = parseInt(e.data.width);
+          elCanvas.height = parseInt(e.data.height);
+          window.VIEWPORT_WIDTH = elCanvas.width;
+          window.VIEWPORT_HEIGHT = elCanvas.height;
+          window.parent.postMessage({ tx: 'sandbox-resize-confirm'}, e.origin);
+          break;
+        default:
+          console.warn('Unknown command');
+      }
+    };
+
+    // transmit
+    window.txBuildSuccess = () => {
+      window.parent.postMessage({ tx: 'sandbox-build-success' });
+    };
+
+    window.txError = (err) => {
+      window.parent.postMessage({ tx: 'sandbox-error', err: err });
+    };
+
+    window.txStackLine = (source, lineno, colno) => {
+      window.parent.postMessage({ tx: 'sandbox-stack-line', source: source, lineno: lineno, colno: colno });
+    };
+
+    window.txErrorFrag = (substr) => {
+      window.parent.postMessage({ tx: 'sandbox-error-frag', frag: substr });
+    };    
+
+    window.digest = (script) => {
+      window.__scriptLen = script.split(/\r\n|\r|\n/).length; // lines
+      window.__stackTrace = [];
+
+      new Promise((resolve, reject) => {
+        eval(`(async () => { try {
+            ${script}
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        })()`);
+      }).then(() => {
+        console.log("we built it");
+        window.txBuildSuccess();
+        return true;
+      }).catch(e => {
+        if (e.stack) {
+          const stackLines = e.stack.split("\n");
+          stackLines.forEach(line => {
+            let step = window.__parseLine(line);
+            if (step) {
+              window.__stackTrace.push(step);
+              window.txStackLine(step[0], step[1], step[2]);
+            }
+          });
+        }
+        const err = 'caught in promise catch: ' + e.reason || 'unknown error';
+        console.error(err);
+        window.txError(err);
+      });
+      console.log('done');
+    };
+    // wrt. Taichi errors, see:
+    // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L104
+    // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L143
+
+
+    //   try {
+    //     eval(`(async () => {\n${script}\n})()`);
+    //   } catch (e) {
+    //     if (e.stack) {
+    //       const stackLines = e.stack.split("\n");
+    //       stackLines.forEach(line => {
+    //         let step = window.__parseLine(line);
+    //         if (step) window.__stackTrace.push(step);
+    //       });
+    //     }
+    //     console.error(e.reason || 'unknown error')
+    //   }
+    //   return true;
+    let elCanvas = document.querySelector('#result_canvas')
+    elCanvas.width = window.VIEWPORT_WIDTH;
+    elCanvas.height = window.VIEWPORT_HEIGHT;
+  </script>
+</body>
+</html>
