@@ -27,35 +27,54 @@
         return [source, lineno - 1, colno];
       }
       return null;
-    }
+    };
+
+    window.__processStackLines = (stackLines) => {
+      stackLines.forEach(line => {
+        let step = window.__parseLine(line);
+        if (step) {
+          window.__stackTrace.push(step);
+          window.txStackLine(step[0], step[1], step[2]);
+        }
+      });
+    };
 
     // herein we try to keep the errors piped to the editor and prevent them from bubbling up
     window.onerror = (message, source, lineno, colno, error) => {
       const err = `Unhandled error caught by window.onerror: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
-      console.log(err);
+      console.error(message);
       window.txError(err);
+      console.log(err);
       return true; // (try to) prevent error from propagating to the console
     };
     window.addEventListener('error', e => {
+        // if (e.error && e.error.stack) {
+        //   const stackLines = e.error.stack.split("\n");
+          
+        //   stackLines.forEach(line => {
+        //     let step = window.__parseLine(line);
+        //     if (step) window.__stackTrace.push(step);
+        //     window.txStackLine(step[0], step[1], step[2]);
+        //   });
+        // }
         const { message, source, lineno, colno, error } = e;
-        const err = `Unhandled error caught by event listener: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
-        console.error(err);
+        const err = `Unhandled error caught by event listener: message: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
+        console.error(e.message);
         window.txError(err);
+        console.log(err);
+        console.log('EVENT-LISTENER DUMP', e);
         e.preventDefault();
     });
     window.onunhandledrejection = (e) => {
       if (e.reason && e.reason.stack) {
         const stackLines = e.reason.stack.split("\n");
-        
-        stackLines.forEach(line => {
-          let step = window.__parseLine(line);
-          if (step) window.__stackTrace.push(step);
-          window.txStackLine(step[0], step[1], step[2]);
-        });
+        window.__processStackLines(stackLines);
       }
       const err = 'caught in onunhandledrejection: ' + e.reason || 'unknown async error';
-      console.error(err);
+      console.error(e.reason);
       window.txError(err);
+      console.log(err);
+      console.log('UNHANDLED-REJECTION DUMP', e);
       e.preventDefault();
       return true; // (try to) prevent error from propagating to the console
     };
@@ -139,13 +158,28 @@
       window.__stackTrace = [];
 
       new Promise((resolve, reject) => {
-        eval(`(async () => { try {
-            ${script}
-            resolve();
-          } catch (e) {
-            reject(e);
+        try {
+          eval(`(async () => { try {
+              ${script}
+              await main();
+              resolve();
+            } catch (e) {
+              reject(e); 
+            }
+          })()`); 
+        } catch (e) {
+          if (e.stack) {
+            const stackLines = e.stack.split("\n");
+            window.__processStackLines(stackLines);
+
           }
-        })()`);
+          const { message, source, lineno, colno, error } = e;
+          const err = `Unhandled error caught by eval catch: message: ${message || 'unknown error'}`;
+          console.error(e.message);
+          window.txError(err);
+          console.log(err);
+          console.log('EVAL-CATCH DUMP', e);
+        }
       }).then(() => {
         console.log("we built it");
         window.txBuildSuccess();
@@ -153,19 +187,15 @@
       }).catch(e => {
         if (e.stack) {
           const stackLines = e.stack.split("\n");
-          stackLines.forEach(line => {
-            let step = window.__parseLine(line);
-            if (step) {
-              window.__stackTrace.push(step);
-              window.txStackLine(step[0], step[1], step[2]);
-            }
-          });
+          window.__processStackLines(stackLines);
         }
-        const err = 'caught in promise catch: ' + e.reason || 'unknown error';
-        console.error(err);
+        const { message, source, lineno, colno, error } = e;
+        const err = `Unhandled error caught by promise catch: message: ${message || 'unknown error'}`;
+        console.error(e.message);
         window.txError(err);
+        console.log(err);
+        console.log('PROMISE-CATCH DUMP', e);
       });
-      console.log('done');
     };
     // wrt. Taichi errors, see:
     // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L104

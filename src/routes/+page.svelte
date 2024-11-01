@@ -138,23 +138,23 @@
 
       let canvasframe = document.querySelector("#canvasframe");
       let canvasframeWindow = canvasframe.contentWindow;
-      // try {
+      try {
         canvasframeWindow.console.error = (e, ...args) => {
           Log.scriptError(e, ...args);
           console.log(e, ...args);
-          console.trace(e);
+          // console.trace(e);
         };
         canvasframeWindow.digest(editorVal);
         setTimeout(() => {console.log(canvasframeWindow.__stackTrace) } , 500 );
-      // } catch (e) {
-      //     buildSuccessFul = false;
-      //     Log.scriptError(e);
-      // } finally {
-      //   // cleanup
-      // }
+      } catch (e) {
+          buildSuccessFul = false;
+          Log.scriptError(e);
+      } finally {
+        // cleanup
+      }
 
       if (buildSuccessFul) {
-          Log.scriptSuccess("Build successful");
+          Log.scriptSuccess("build completed");
       }
 
 
