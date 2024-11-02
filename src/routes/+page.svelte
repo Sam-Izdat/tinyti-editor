@@ -15,6 +15,10 @@
   import * as ds from '$lib/stores/doc_session';
   import * as km from '$lib/keymap';
 
+  import * as harbor from '$lib/harbor';
+  import { StackTrace } from '$lib/stores';
+  import { StackTraceTable, CallGraph } from '$lib/components';
+
   // Global state
   import { 
     currentView,
@@ -28,7 +32,7 @@
 
   // Sessions
   let dsCurrentSession;
-  const unsubscribeSession = ds.documentSession.subscribe(session => {
+  const unsubscribeDocSession = ds.documentSession.subscribe(session => {
     dsCurrentSession = session;
   });
 
@@ -78,6 +82,7 @@
       }
     }
   });
+  
   // Create a promise to wait for the editor instance
   const waitForEditorInstance = () => {
     return new Promise((resolve) => {
@@ -128,39 +133,41 @@
     window.shouldStop = true;
     Log.clearScriptLog();
 
-    let buildSuccessFul = true;
+    let buildSuccessful = true;
     let editorVal = monacoEditor.getValue()
     let userScript;
     setTimeout(async () => {
 
-      let buildSuccessFul = true;
+      let buildSuccessful = true;
       let editorVal = monacoEditor.getValue();
 
       let canvasframe = document.querySelector("#canvasframe");
       let canvasframeWindow = canvasframe.contentWindow;
-      try {
-        canvasframeWindow.console.error = (e, ...args) => {
-          Log.scriptError(e, ...args);
-          console.log(e, ...args);
-          // console.trace(e);
-        };
-        canvasframeWindow.digest(editorVal);
-        setTimeout(() => {console.log(canvasframeWindow.__stackTrace) } , 500 );
-      } catch (e) {
-          buildSuccessFul = false;
-          Log.scriptError(e);
-      } finally {
-        // cleanup
-      }
 
-      if (buildSuccessFul) {
-          Log.scriptSuccess("build completed");
-      }
+      harbor.txBuild(canvasframeWindow, editorVal);
+
+      // try {
+      //   canvasframeWindow.console.error = (e, ...args) => {
+      //     Log.scriptError(e, ...args);
+      //     console.log(e, ...args);
+      //     // console.trace(e);
+      //   };
+      //   canvasframeWindow.digest(editorVal);
+      // } catch (e) {
+      //     buildSuccessful = false;
+      //     Log.scriptError(e);
+      // } finally {
+      //   // cleanup
+      // }
+
+      // if (buildSuccessful) {
+      //     Log.scriptSuccess("build completed");
+      // }
 
 
     }, 120);
 
-    let flashCol = buildSuccessFul 
+    let flashCol = buildSuccessful 
       ? ($isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1])
       : ($isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1]);
     pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
@@ -342,89 +349,95 @@
 
   // When browser stuff is available
   onMount(async () => {
-    document.querySelector('body').setAttribute('data-theme', cfg.APP_THEME);
+    if (browser) {
+      document.querySelector('body').setAttribute('data-theme', cfg.APP_THEME);
 
-    // canvasframe = document.querySelector("#canvasframe");
-    // canvasframeWindow = canvasframe.contentWindow;
-    // canvasframeWindow.console.error = (e) => Log.scriptError(e);
+      // canvasframe = document.querySelector("#canvasframe");
+      // canvasframeWindow = canvasframe.contentWindow;
+      // canvasframeWindow.console.error = (e) => Log.scriptError(e);
 
-    await waitForEditorInstance(); 
-    
-    // Listen for changes in Monaco editor and update the store
-    monacoEditor.onDidChangeModelContent(() => {
-      const content = monacoEditor.getValue();
-      docHandler.updateDoc(content);
-      window.shouldStop = true;
-      Log.clearScriptLog();
-      if ($isAutoBuild) {
-        clearTimeout(autoBuildTimeoutID);   
-        autoBuildTimeoutID = setTimeout(reqBuild, cfg.AUTOBUILD_DELAY);
+      await waitForEditorInstance(); 
+      
+      // Listen for changes in Monaco editor and update the store
+      monacoEditor.onDidChangeModelContent(() => {
+        const content = monacoEditor.getValue();
+        docHandler.updateDoc(content);
+        window.shouldStop = true;
+        Log.clearScriptLog();
+        if ($isAutoBuild) {
+          clearTimeout(autoBuildTimeoutID);   
+          autoBuildTimeoutID = setTimeout(reqBuild, cfg.AUTOBUILD_DELAY);
+        }
+      });
+
+      // Populate panes
+      panes.returnContentToSplit();
+      
+      // Set up handlers
+      docHandler    = new DocHandler(dsCurrentSession, monacoEditor);
+      navHandler    = new NavHandler();
+      screenHandler = new ScreenHandler(window);
+      mobileHandler = new MobileHandler(window);
+
+      // Check if an uploaded file exists in sessionStorage
+      const fileData = sessionStorage.getItem('importRequestFile'); 
+      sessionStorage.removeItem('importRequestFile');
+      const importRequestView = sessionStorage.getItem('importRequestView');
+      if (importRequestView !== null && +importRequestView <= 3 && +importRequestView >= 0) {
+        $currentView = parseInt(importRequestView);
+        sessionStorage.removeItem('importRequestView');
       }
-    });
+      const importRequestAutoBuild = sessionStorage.getItem('importRequestAutoBuild');
+      if (importRequestAutoBuild !== null) {
+        isAutoBuild.set(!!+importRequestAutoBuild)
+        sessionStorage.removeItem('importRequestAutoBuild');
+      }
+      const importRequestReadOnly = sessionStorage.getItem('importRequestReadOnly');
+      if (importRequestReadOnly !== null) {
+        !!+importRequestReadOnly ? docHandler.disableEditing() : docHandler.enableEditing();
+        sessionStorage.removeItem('importRequestReadOnly');
+      }
 
-    // Populate panes
-    panes.returnContentToSplit();
-    
-    // Set up handlers
-    docHandler    = new DocHandler(dsCurrentSession, monacoEditor);
-    navHandler    = new NavHandler();
-    screenHandler = new ScreenHandler(window);
-    mobileHandler = new MobileHandler(window);
-
-    // Check if an uploaded file exists in sessionStorage
-    const fileData = sessionStorage.getItem('importRequestFile'); 
-    sessionStorage.removeItem('importRequestFile');
-    const importRequestView = sessionStorage.getItem('importRequestView');
-    if (importRequestView !== null && +importRequestView <= 3 && +importRequestView >= 0) {
-      $currentView = parseInt(importRequestView);
-      sessionStorage.removeItem('importRequestView');
-    }
-    const importRequestAutoBuild = sessionStorage.getItem('importRequestAutoBuild');
-    if (importRequestAutoBuild !== null) {
-      isAutoBuild.set(!!+importRequestAutoBuild)
-      sessionStorage.removeItem('importRequestAutoBuild');
-    }
-    const importRequestReadOnly = sessionStorage.getItem('importRequestReadOnly');
-    if (importRequestReadOnly !== null) {
-      !!+importRequestReadOnly ? docHandler.disableEditing() : docHandler.enableEditing();
-      sessionStorage.removeItem('importRequestReadOnly');
-    }
-
-    let contentToLoad; 
-    if (fileData) {
-      const file = JSON.parse(fileData);
-      contentToLoad = file[0].content || null; 
-    }
+      let contentToLoad; 
+      if (fileData) {
+        const file = JSON.parse(fileData);
+        contentToLoad = file[0].content || null; 
+      }
 
 
-    docHandler.newDoc(contentToLoad);
+      docHandler.newDoc(contentToLoad);
 
-    // Listen for orientation changes and do initial check
-    window.screen.orientation.onchange = () => {
-      // Don't shorten to just arrow - this has to be in curlies... for some reason.
+      // Listen for orientation changes and do initial check
+      window.screen.orientation.onchange = () => {
+        // Don't shorten to just arrow - this has to be in curlies... for some reason.
+        mobileHandler.orientationChange();
+      };
       mobileHandler.orientationChange();
-    };
-    mobileHandler.orientationChange();
 
-    // Turn off editing by default on mobile devices, because soft keys suck
-    if (Device.isMobile && cfg.MOBILE_READONLY) docHandler.disableEditing();
+      // Turn off editing by default on mobile devices, because soft keys suck
+      if (Device.isMobile && cfg.MOBILE_READONLY) docHandler.disableEditing();
 
-    // Custom events from keybind
-    observeKeyboard();
-    window.addEventListener('save-document', reqSaveDoc);
-    window.addEventListener('save-document-new-version', reqSaveDocNewVersion);
-    window.addEventListener('new-document', reqNewDoc);
-    window.addEventListener('rename-document', reqRenameDoc);
-    window.addEventListener('archive-shelf', reqOpenArchiveDrawer);
-    window.addEventListener('switch-view', navHandler.switchViewEvent);
-    window.addEventListener('build-script', reqBuild);
+      harbor.rxListen();
 
-    reqBuild();
+      // Custom events from keybind
+      observeKeyboard();
+      window.addEventListener('save-document', reqSaveDoc);
+      window.addEventListener('save-document-new-version', reqSaveDocNewVersion);
+      window.addEventListener('new-document', reqNewDoc);
+      window.addEventListener('rename-document', reqRenameDoc);
+      window.addEventListener('archive-shelf', reqOpenArchiveDrawer);
+      window.addEventListener('switch-view', navHandler.switchViewEvent);
+      window.addEventListener('build-script', reqBuild);
+
+      reqBuild();
+    }
   });
 
   // Not actually necessary in present state, but just to be thorough.
   onDestroy(() => {
     if (browser) {
+      harbor.rxDispose();
+
       window.removeEventListener('save-document', reqSaveDoc);
       window.removeEventListener('save-document-new-version', reqSaveDocNewVersion);
       window.removeEventListener('new-document', reqNewDoc);
@@ -440,7 +453,7 @@
       mobileHandler?.dispose();
     }
 
-    unsubscribeSession();
+    unsubscribeDocSession();
   });
 
   import { AppRail, AppRailTile, AppRailAnchor } from '@skeletonlabs/skeleton';
@@ -581,7 +594,7 @@
         <div id="cr-pane2" />
       </Pane>
       <Pane minSize={0} bind:size={$paneSizes.sizePortraitPaneBot}>
-        <div id="cr-pane3"/>
+        <div id="cr-pane3" />
       </Pane>
     </Splitpanes>
     {/if}
@@ -608,7 +621,7 @@
       </div> -->
       <!-- / Replace this with actual canvas -->
     </div>        
-    <div id="ct3" class="divide-y divide-surface-400/10">
+    <div id="ct3" class="divide-y divide-surface-400/10 !overflow-y-auto">
       <div class="overflow-x-auto flex p-1">
         <button 
           title="Save (alt+{km.keySaveDoc} / ctrl+{km.keySaveDoc})" 
@@ -635,6 +648,12 @@
             exportCallback={reqExportFile}
           />
         </div>
+      </div>
+      <div>        
+        <StackTraceTable monacoEditor={monacoEditor} />
+      </div>
+      <div>
+        <!-- <CallGraph /> -->
       </div>
       <div class="flex p-1">
         <span class="badge variant-soft">This is where the controls would be.</span>

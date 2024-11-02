@@ -4,3 +4,5 @@ export * from './doc_session';
 export * from './dark_mode';
 export * from './app_state';
 export * from './drawer';
+export * from './stack_trace';
+export * from './monaco';

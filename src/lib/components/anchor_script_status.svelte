@@ -69,7 +69,7 @@
 
 <!-- Need wrapper because AppRailAnchor can't use popup -->
 <div class="m-0 p-0" 
-  use:popup={{ event: 'click', target: 'error-popup', placement: 'right' }}
+  use:popup={{ event: 'hover', target: 'error-popup', placement: 'right' }}
 >
 <AppRailAnchor 
   href="#" 

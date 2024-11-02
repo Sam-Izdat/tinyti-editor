@@ -7,6 +7,7 @@ export * from './log';
 export * from './modals';
 export * from './panes';
 export * from './strings';
+export * from './call_graph';
 
 // dir
 export * from './components';

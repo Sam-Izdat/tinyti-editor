@@ -14,9 +14,14 @@
   let editorContainer: HTMLElement;
   export let editorInstance;
 
+  // Store for accessing in other components
+  import { monacoStore } from '$lib/stores';
+
   onMount(async () => {
-    // Import monaco
+    // Import and send to store
     monaco = (await import('./monaco.ts')).default;
+    console.warn('++++++++', monaco);
+    monacoStore.set(monaco);
 
     observeThemeChange(monaco.editor);
 

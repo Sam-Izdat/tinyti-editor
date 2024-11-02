@@ -29,21 +29,30 @@
       return null;
     };
 
-    window.__processStackLines = (stackLines) => {
+    window.__processStackLines = (stackLines, err_hash) => {
       stackLines.forEach(line => {
         let step = window.__parseLine(line);
         if (step) {
           window.__stackTrace.push(step);
-          window.txStackLine(step[0], step[1], step[2]);
+          window.txStackLine(step[0], parseInt(step[1]), parseInt(step[2]), err_hash);
         }
       });
+    };
+
+    window.__generateErrorHash = (errorMessage, stack) => {
+      let str = errorMessage + JSON.stringify(stack);
+      let hash = 5381;
+      for (let i = 0; i < str.length; i++) {
+        hash = (hash * 33) ^ str.charCodeAt(i);
+      }
+      return hash >>> 0;
     };
 
     // herein we try to keep the errors piped to the editor and prevent them from bubbling up
     window.onerror = (message, source, lineno, colno, error) => {
       const err = `Unhandled error caught by window.onerror: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
-      console.error(message);
-      window.txError(err);
+      const err_hash = window.__generateErrorHash(message, error.stack ?? {});
+      window.txError(error.name ?? 'error', message, err_hash);
       console.log(err);
       return true; // (try to) prevent error from propagating to the console
     };
@@ -59,23 +68,24 @@
         // }
         const { message, source, lineno, colno, error } = e;
         const err = `Unhandled error caught by event listener: message: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
-        console.error(e.message);
-        window.txError(err);
+        // console.error(e.message);
+        window.txError(error.name ?? 'error', message);
         console.log(err);
-        console.log('EVENT-LISTENER DUMP', e);
+        // console.log('EVENT-LISTENER DUMP', e);
         e.preventDefault();
     });
     window.onunhandledrejection = (e) => {
+      const err = 'caught in onunhandledrejection: ' + e.reason || 'unknown async error';
+      const err_hash = window.__generateErrorHash(e.reason, {});
+      // console.error(e.reason);
+      window.txError('PromiseRejection', e.reason, err_hash);
+      console.log(err);
+      // console.log('UNHANDLED-REJECTION DUMP', e);
+      e.preventDefault();
       if (e.reason && e.reason.stack) {
         const stackLines = e.reason.stack.split("\n");
-        window.__processStackLines(stackLines);
+        window.__processStackLines(stackLines, err_hash);
       }
-      const err = 'caught in onunhandledrejection: ' + e.reason || 'unknown async error';
-      console.error(e.reason);
-      window.txError(err);
-      console.log(err);
-      console.log('UNHANDLED-REJECTION DUMP', e);
-      e.preventDefault();
       return true; // (try to) prevent error from propagating to the console
     };
     // };
@@ -101,13 +111,13 @@
     window.rxHarbor = (e) => {
       // if (e.origin !== 'parent-origin') return; 
 
-      const { tx } = e.data.tx;
+      const tx = e.data.tx;
       switch (tx) {
         case 'harbor-build':
           window.__stackTrace = [];
           window.__running = true;
           window.shouldStop = false;
-          window.digest(e.data.script, e.data.width, e.data.height);
+          window.digest(e.data.script);
           window.parent.postMessage({ tx: 'sandbox-build-start' }, e.origin);
           break;
         case 'harbor-stop':
@@ -141,12 +151,12 @@
       window.parent.postMessage({ tx: 'sandbox-build-success' });
     };
 
-    window.txError = (err) => {
-      window.parent.postMessage({ tx: 'sandbox-error', err: err });
+    window.txError = (name, err, err_hash) => {
+      window.parent.postMessage({ tx: 'sandbox-error', name: name, err: err, hash: err_hash });
     };
 
-    window.txStackLine = (source, lineno, colno) => {
-      window.parent.postMessage({ tx: 'sandbox-stack-line', source: source, lineno: lineno, colno: colno });
+    window.txStackLine = (source, lineno, colno, err_hash) => {
+      window.parent.postMessage({ tx: 'sandbox-stack-line', source: source, lineno: lineno, colno: colno, hash: err_hash });
     };
 
     window.txErrorFrag = (substr) => {
@@ -168,33 +178,35 @@
             }
           })()`); 
         } catch (e) {
+          let name = e.name ?? 'error';
+          let message = e.message ?? 'unknown error';
+          const err = `Unhandled error caught by eval catch: message: ${message}`;
+          const err_hash = window.__generateErrorHash(message, e.stack ?? {});
+          // console.error(e.message);
+          window.txError(name, message, err_hash);
+          // console.log('EVAL-CATCH DUMP', e);
           if (e.stack) {
             const stackLines = e.stack.split("\n");
-            window.__processStackLines(stackLines);
-
+            window.__processStackLines(stackLines, err_hash);
           }
-          const { message, source, lineno, colno, error } = e;
-          const err = `Unhandled error caught by eval catch: message: ${message || 'unknown error'}`;
-          console.error(e.message);
-          window.txError(err);
-          console.log(err);
-          console.log('EVAL-CATCH DUMP', e);
         }
       }).then(() => {
         console.log("we built it");
         window.txBuildSuccess();
         return true;
       }).catch(e => {
+        let name = e.name ?? 'error';
+        let message = e.message ?? 'unknown error';
+        const err = `Unhandled error caught by promise catch: message: ${message}`;
+        const err_hash = window.__generateErrorHash(message, e.stack ?? {});
+        // console.error(e.message);
+        window.txError(e.name, message, err_hash);
+        console.log(err);
+        // console.log('PROMISE-CATCH DUMP', e);
         if (e.stack) {
           const stackLines = e.stack.split("\n");
-          window.__processStackLines(stackLines);
+          window.__processStackLines(stackLines, err_hash);
         }
-        const { message, source, lineno, colno, error } = e;
-        const err = `Unhandled error caught by promise catch: message: ${message || 'unknown error'}`;
-        console.error(e.message);
-        window.txError(err);
-        console.log(err);
-        console.log('PROMISE-CATCH DUMP', e);
       });
     };
     // wrt. Taichi errors, see:
