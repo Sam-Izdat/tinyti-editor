@@ -217,7 +217,7 @@
 
 
 <Accordion>
-  <AccordionItem open>
+  <AccordionItem open padding="py-1 px-0">
     <svelte:fragment slot="lead">
       <Icon src="{hero.CircleStack}" size="20" class="mx-0 my-1" solid/>
     </svelte:fragment>
@@ -225,12 +225,12 @@
     <svelte:fragment slot="content">
 
 
-    <Accordion>
+    <Accordion padding="py-1 px-0">
 
       {#each $StackTrace as [errorId, stackLines]}
-      <AccordionItem open class="variant-ghost-error">
+      <AccordionItem open class="variant-ghost-error ">
         <svelte:fragment slot="lead">
-        <Icon src="{hero.ExclamationCircle}" size="20" class="mx-0 my-1" solid/>
+          <Icon src="{hero.ExclamationCircle}" size="20" class="ml-2 mr-0 my-0" solid/>
         </svelte:fragment>
         <svelte:fragment slot="summary">
           <p class="font-semibold text-base alert m-1 p-1">
@@ -238,8 +238,8 @@
           </p>
         </svelte:fragment>
         <svelte:fragment slot="content">
-          <div class="table-container w-full shadow-xl">
-            <table class="table table-hover">
+          <div class="table-container w-full shadow-xl p-0 m-0">
+            <table class="table table-hover m-0">
               <thead>
                 <tr>
                   <th class="w-full !p-1">Stack Trace</th>
