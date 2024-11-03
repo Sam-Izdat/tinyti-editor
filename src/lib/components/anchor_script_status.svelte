@@ -43,6 +43,8 @@
   let activeIcon    = hero.Play;
   
   const unsubscribe = Log.getInstance().scriptStatus.subscribe(status => {
+    if (ready && (status & Log.ScriptStatus.ERROR)) stopCallback();
+
     scriptStatus = status;
     statusClass = '';
     activeIcon = hero.Play;
@@ -59,9 +61,8 @@
       activeIcon = hero.ExclamationCircle;
     }
 
-    if (ready && !(status & Log.ScriptStatus.SUCCESS)) stopCallback();
   });
-  
+
   onMount (async() => {
     ready = true;
   });
@@ -86,7 +87,14 @@
   title="Build (alt+{km.keyBuild})" 
   class={statusClass} 
   style="display:block;"
-  on:click={scriptStatus & Log.ScriptStatus.SUCCESS ? stopCallback : buildCallback}
+  on:click={() => {
+    if(scriptStatus & Log.ScriptStatus.SUCCESS) {
+      stopCallback();
+      Log.clearScriptLog();       
+    } else {
+      buildCallback();
+    }
+  }}
 >
   <Icon src="{activeIcon}" size="16" style="margin: 4px auto;" solid />
   <div 
