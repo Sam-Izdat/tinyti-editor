@@ -154,7 +154,8 @@
 
   };
 
-  const reqStopAnimation = () => {
+  const reqStopAnimation = () => {    
+    Log.clearScriptLog();
     let canvasframe = document.querySelector("#canvasframe");
     let canvasframeWindow = canvasframe.contentWindow;
     harbor.txStop(canvasframeWindow);
@@ -376,7 +377,7 @@
           autoBuildTimeoutID = setTimeout(reqBuild, cfg.AUTOBUILD_DELAY);
         }
       });
-
+      
       // Populate panes
       panes.returnContentToSplit();
       
