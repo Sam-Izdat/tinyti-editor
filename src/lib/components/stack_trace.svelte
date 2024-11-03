@@ -1,4 +1,8 @@
 <script lang="ts">
+  import type { SvelteComponent } from 'svelte';
+  import { Accordion, AccordionItem } from '@skeletonlabs/skeleton';
+  import { TabGroup, Tab, TabAnchor } from '@skeletonlabs/skeleton';
+
   import { Log } from '$lib';
   import { onMount, onDestroy } from 'svelte';
   import { browser } from '$app/environment';
@@ -13,6 +17,8 @@
   import { get } from 'svelte/store';
   let monaco: typeof Monaco = get(monacoStore);
   monacoStore.subscribe(value => (monaco = value));
+
+  // export let parent: SvelteComponent;
 
   // State
   let errors: Map = new Map();
@@ -208,48 +214,77 @@
 </script>
 
 <!-- Iterate through stack traces, displaying each in a table -->
-{#each $StackTrace as [errorId, stackLines]}
-<h2>{errors.get(errorId) ?? ''}</h2>
-<div class="table-container w-full shadow-xl">
-  <table class="table table-hover">
-    <thead>
-      <tr>
-        <th class="w-full !p-1">Source</th>
-        <th class="w-24 !p-1">Line</th>
-        <th class="w-24 !p-1">Col</th> 
-        <th class="w-24 !p-1">Graph</th> 
-      </tr>
-    </thead>
-    <tbody class="font-mono">
-      {#each stackLines as { source, lineno, colno }}
-        <tr>
-          <td class="!pt-1 !pb-1">
-            <button class="w-full text-left" on:click={
-              () => { handleErrorSelect(errors.get(errorId), lineno, colno) }
-            }>
-              {source}
-            </button>
-          </td>
-          <td class="!pt-1 !pb-1">{lineno}</td>
-          <td class="!pt-1 !pb-1">{colno}</td>
-          <td class="!pt-1 !pb-1">
-            <button class="w-full flex justify-center items-center" on:click={
-              () => { makeGraph(errorId, source, lineno, colno); }
-            }>
-              <Icon src={hero.MagnifyingGlass} size='16' />
-            </button>
-          </td>
-        </tr>
-        <tr>
-          <td id="row_{errorId}_{lineno}_{colno}" colspan=4 class="!pt-1 !pb-1 hidden">
-            <div id="callgraph_{errorId}_{lineno}_{colno}" class="h-fit w-full flex justify-center p-2 callgraph" />
-          </td>
-        </tr>
+
+
+<Accordion>
+  <AccordionItem open>
+    <svelte:fragment slot="lead">
+      <Icon src="{hero.CircleStack}" size="20" class="mx-0 my-1" solid/>
+    </svelte:fragment>
+    <svelte:fragment slot="summary"><p class="font-semibold text-base">Debug</p></svelte:fragment>
+    <svelte:fragment slot="content">
+
+
+    <Accordion>
+
+      {#each $StackTrace as [errorId, stackLines]}
+      <AccordionItem open class="variant-ghost-error">
+        <svelte:fragment slot="lead">
+        <Icon src="{hero.ExclamationCircle}" size="20" class="mx-0 my-1" solid/>
+        </svelte:fragment>
+        <svelte:fragment slot="summary">
+          <p class="font-semibold text-base alert m-1 p-1">
+            {errors.get(errorId) ?? ''}
+          </p>
+        </svelte:fragment>
+        <svelte:fragment slot="content">
+          <div class="table-container w-full shadow-xl">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th class="w-full !p-1">Stack Trace</th>
+                  <th class="w-24 !p-1">Line</th>
+                  <th class="w-24 !p-1">Col</th> 
+                  <th class="w-24 !p-1">Graph</th> 
+                </tr>
+              </thead>
+              <tbody class="font-mono">
+                {#each stackLines as { source, lineno, colno }}
+                  <tr>
+                    <td class="!pt-1 !pb-1">
+                      <button class="w-full text-left" on:click={
+                        () => { handleErrorSelect(errors.get(errorId), lineno, colno) }
+                      }>
+                        {source}
+                      </button>
+                    </td>
+                    <td class="!pt-1 !pb-1">{lineno}</td>
+                    <td class="!pt-1 !pb-1">{colno}</td>
+                    <td class="!pt-1 !pb-1">
+                      <button class="w-full flex justify-center items-center" on:click={
+                        () => { makeGraph(errorId, source, lineno, colno); }
+                      }>
+                        <Icon src={hero.MagnifyingGlass} size='16' />
+                      </button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td id="row_{errorId}_{lineno}_{colno}" colspan=4 class="!pt-1 !pb-1 hidden">
+                      <div id="callgraph_{errorId}_{lineno}_{colno}" class="h-fit w-full flex justify-center p-2 callgraph" />
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        </svelte:fragment>
+      </AccordionItem>
       {/each}
-    </tbody>
-  </table>
-</div>
-{/each}
+    </Accordion>
+
+    </svelte:fragment>
+  </AccordionItem>
+</Accordion>
 <style>
 :global(.callgraph > svg, .callgraph > svg)  {
   width: 100%;

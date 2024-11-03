@@ -632,7 +632,6 @@
       <MonacoEditor editorInstance={monacoEditor} on:init={setEditorInstance} />
     </div>
     <div id="ct2">
-      <!-- Replace this with actual canvas -->
       <iframe 
         id="canvasframe" 
         width="800" 
@@ -641,12 +640,6 @@
         scrolling="no" 
         sandbox="allow-scripts allow-popups"  
         title="canvasframe"> 
-
-      <!-- <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-[100%] w-[100%]">
-        <span class="badge variant-soft">This is where the canvas would be.</span>
-        <span class="badge variant-soft">Current view: {$currentView}</span>
-      </div> -->
-      <!-- / Replace this with actual canvas -->
     </div>        
     <div id="ct3" class="divide-y divide-surface-400/10 !overflow-y-auto">
       <div class="overflow-x-auto flex p-1">
@@ -655,7 +648,7 @@
           class="badge m-1 {dsCurrentSession.unsavedChanges ? 'variant-ghost-primary' : 'variant-soft-primary'}" 
           on:click={reqSaveDoc}
         >
-          <Icon src="{hero.ArrowDownOnSquare}" size="16" style="margin: 2px auto;" solid/>
+          <Icon src="{hero.ArrowDownOnSquare}" size="16" class="mx-0 my-1" solid/>
           <span class="hidden lg:inline ml-2">Save</span>
         </button> 
         <button 
@@ -663,7 +656,7 @@
           class="badge m-1 {dsCurrentSession.unsavedChanges ? 'variant-ghost-primary' : 'variant-soft-primary'}"
           on:click={reqSaveDocNewVersion}
         >
-          <Icon src="{hero.ArrowDownOnSquareStack}" size="16" style="margin: 2px auto;" solid/>
+          <Icon src="{hero.ArrowDownOnSquareStack}" size="16" class="mx-0 my-1" solid/>
           <span class="hidden lg:inline ml-2">Save v{dsCurrentSession.versionCount}</span>
         </button>
         <div class="ml-auto flex">
@@ -678,10 +671,6 @@
       </div>
       <div>        
         <StackTraceTable monacoEditor={monacoEditor} />
-      </div>
-      <div class="flex p-1">
-        <span class="badge variant-soft">This is where the controls would be.</span>
-        <span class="badge variant-soft">Current view: {$currentView}</span>
       </div>
     </div>
   </div>

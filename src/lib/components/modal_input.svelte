@@ -46,11 +46,11 @@
       </div>
       <div class="flex justify-center">
         <button type="submit" class="btn variant-ghost-primary m-1">
-          <Icon src="{Check}" size="16" style="margin: 2px auto;" solid/>
+          <Icon src="{Check}" size="16" class="mx-0 my-1" solid/>
           <span>{$modalStore[0].txtConfirm ?? 'OK'}</span>
         </button>
         <button type="button" class="btn variant-ghost-primary m-1" on:click={actionCancel}>
-          <Icon src="{XMark}" size="16" style="margin: 2px auto;" solid/>
+          <Icon src="{XMark}" size="16" class="mx-0 my-1" solid/>
           <span>{$modalStore[0].txtCancel ?? 'Cancel'}</span>
         </button>
       </div>

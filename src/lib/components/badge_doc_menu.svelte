@@ -28,7 +28,7 @@
   title="Options Menu" 
   use:popup={popupCBDocMenu}
 >
-  <Icon src="{hero.EllipsisVertical}" size="16" style="margin: 2px auto;" solid/>
+  <Icon src="{hero.EllipsisVertical}" size="16" class="mx-0 my-1" solid/>
 </button>
 <div class="card w-fit shadow-xl py-2 overflow-y-auto overflow-x-hidden" data-popup="popup_doc_menu">
   <ListBox rounded="rounded-none" padding="px-4 py-1 text-sm">

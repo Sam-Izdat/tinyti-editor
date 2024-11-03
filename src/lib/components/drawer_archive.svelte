@@ -82,7 +82,7 @@
     class="badge m-1 variant-ghost-primary" 
     on:click={saveDocCallback}
   >
-    <Icon src="{hero.ArrowDownOnSquare}" size="16" style="margin: 2px auto;" solid/>
+    <Icon src="{hero.ArrowDownOnSquare}" size="16" class="mx-0 my-1" solid/>
     <span class="hidden lg:inline ml-2">Save</span>
   </button> 
   <button 
@@ -90,7 +90,7 @@
     class="badge m-1 variant-ghost-primary"
     on:click={saveDocNewVersionCallback}
   >
-    <Icon src="{hero.ArrowDownOnSquareStack}" size="16" style="margin: 2px auto;" solid/>
+    <Icon src="{hero.ArrowDownOnSquareStack}" size="16" class="mx-0 my-1" solid/>
     <span class="hidden lg:inline ml-2">Save New Version</span>
   </button>
 </div>
