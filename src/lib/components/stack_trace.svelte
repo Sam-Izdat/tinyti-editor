@@ -97,11 +97,11 @@
   size="6.5,6.5"
   rankdir="LR"
   node [colorscheme=set39]
-  node [shape=ellipse, style="filled", fillcolor=4, fontname="Consolas"]
+  node [shape=rect, style="filled", fillcolor=4, fontname="Consolas"]
     "${currentNode}"
-  ${nextNode ? 'node [shape=record, style="filled", fillcolor=2, fontname="Consolas"]\n  "'+currentNode+'" -> "'+nextNode+'"\n' : ''}
-  ${prevNode ? 'node [shape=record, style="filled", fillcolor=6, fontname="Consolas"]\n  "'+prevNode+'" -> "'+currentNode+'"\n' : ''}
-  node [shape=box, style="filled", fillcolor=1, fontname="Consolas"]; 
+  ${nextNode ? 'node [shape=rect, style="filled", fillcolor=2, fontname="Consolas"]\n  "'+currentNode+'" -> "'+nextNode+'"\n' : ''}
+  ${prevNode ? 'node [shape=rect, style="filled", fillcolor=6, fontname="Consolas"]\n  "'+prevNode+'" -> "'+currentNode+'"\n' : ''}
+  node [shape=rect, style="filled", fillcolor=1, fontname="Consolas"]; 
     ${dotGraph}
     bgcolor=transparent
   }`;
@@ -286,10 +286,22 @@
   </AccordionItem>
 </Accordion>
 <style>
-:global(.callgraph > svg, .callgraph > svg)  {
+:global(.callgraph > svg)  {
   width: 100%;
   filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.4)) !important;
 }
+:global(.callgraph > svg polygon)  {
+  opacity: 0.2 !important;
+}
+
+:global(html.dark .callgraph > svg)  {
+  fill: #fff !important;
+}
+
+:global(.callgraph > svg text)  {
+  padding: 10px;
+}
+
 :global(.compileErrorGlyph) {
   background-color: rgba(255, 0, 0, 0.2); /* Just an example color */
 }
