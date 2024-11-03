@@ -162,6 +162,7 @@
   };
 
   const reqResize = (reqWidth = null, reqHeight = null) => {
+    reqStopAnimation();
     let width = 0;
     let height = 0;
     if (reqWidth === null || reqHeight === null) {
