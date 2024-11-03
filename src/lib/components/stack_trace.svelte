@@ -13,7 +13,7 @@
 
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   export let monacoEditor: Monaco.editor.IStandaloneCodeEditor;
-  import { monacoStore } from '$lib/stores';
+  import { monacoStore, isDark } from '$lib/stores';
   import { get } from 'svelte/store';
   let monaco: typeof Monaco = get(monacoStore);
   monacoStore.subscribe(value => (monaco = value));
@@ -96,8 +96,10 @@
   digraph { 
   size="6.5,6.5"
   rankdir="LR"
+  
   node [colorscheme=set39]
   node [shape=rect, style="filled", fillcolor=4, fontname="Consolas"]
+  edge[arrowhead=tee, arrowsize=0.85, color="${$isDark ? 'white' : 'black'}", fontsize=10, fontcolor=navy]
     "${currentNode}"
   ${nextNode ? 'node [shape=rect, style="filled", fillcolor=2, fontname="Consolas"]\n  "'+currentNode+'" -> "'+nextNode+'"\n' : ''}
   ${prevNode ? 'node [shape=rect, style="filled", fillcolor=6, fontname="Consolas"]\n  "'+prevNode+'" -> "'+currentNode+'"\n' : ''}
@@ -217,7 +219,7 @@
 
 
 <Accordion>
-  <AccordionItem open padding="py-1 px-0">
+  <AccordionItem open padding="py-1 px-px">
     <svelte:fragment slot="lead">
       <Icon src="{hero.CircleStack}" size="20" class="mx-0 my-1" solid/>
     </svelte:fragment>
@@ -225,7 +227,7 @@
     <svelte:fragment slot="content">
 
 
-    <Accordion padding="py-1 px-0">
+    <Accordion padding="py-1 px-0.5">
 
       {#each $StackTrace as [errorId, stackLines]}
       <AccordionItem open class="variant-ghost-error ">
