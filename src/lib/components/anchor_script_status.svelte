@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Log } from '$lib';
-  import { onDestroy } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { popup } from '@skeletonlabs/skeleton';
   import { scriptErrorLog } from '$lib/stores'; // Store for message queue
   import { AppRailAnchor } from '@skeletonlabs/skeleton';
@@ -23,7 +23,6 @@
   });
 
   const getClass = (status: MessageStatus) => {
-    console.log('~~~~~~~~', status);
     switch (status) {
       case 'info':
         return 'variant-filled-info';
@@ -38,9 +37,10 @@
     }
   }
 
-  let scriptStatus = 0;
-  let statusClass = '';
-  let activeIcon = hero.Play;
+  let ready         = false;
+  let scriptStatus  = 0;
+  let statusClass   = '';
+  let activeIcon    = hero.Play;
   
   const unsubscribe = Log.getInstance().scriptStatus.subscribe(status => {
     scriptStatus = status;
@@ -59,10 +59,13 @@
       activeIcon = hero.ExclamationCircle;
     }
 
-    console.log('####', status, scriptStatus, statusClass, activeIcon);
+    if (ready && !(status & Log.ScriptStatus.SUCCESS)) stopCallback();
+  });
+  
+  onMount (async() => {
+    ready = true;
   });
 
-  // Cleanup subscription when component is destroyed
   onDestroy(() => {
     unsubscribe();
   });

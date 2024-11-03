@@ -371,7 +371,6 @@
       monacoEditor.onDidChangeModelContent(() => {
         const content = monacoEditor.getValue();
         docHandler.updateDoc(content);
-        Log.clearScriptLog();
         if ($isAutoBuild) {
           clearTimeout(autoBuildTimeoutID);   
           autoBuildTimeoutID = setTimeout(reqBuild, cfg.AUTOBUILD_DELAY);
