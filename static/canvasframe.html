@@ -15,6 +15,9 @@
     window.VIEWPORT_WIDTH = 512;    // width of parent UI viewport (max canvas width)
     window.VIEWPORT_HEIGHT = 512;   // height of parent UI viewport (max canvas height)
 
+
+    console.error = (...e) => console.log(...e); 
+
     // extract pertinent info from stack trace (chromium & FF)
     window.__parseLine = (line) => {
       const match = line.match(/(?:<anonymous>|eval):(\d+):(\d+)/);
@@ -68,6 +71,7 @@
         // }
         const { message, source, lineno, colno, error } = e;
         const err = `Unhandled error caught by event listener: message: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
+        console.log(err);
         // console.error(e.message);
         window.txError(error.name ?? 'error', message);
         console.log(err);
@@ -77,6 +81,7 @@
     window.onunhandledrejection = (e) => {
       const err = 'caught in onunhandledrejection: ' + e.reason || 'unknown async error';
       const err_hash = window.__generateErrorHash(e.reason, {});
+      console.log(err);
       // console.error(e.reason);
       window.txError('PromiseRejection', e.reason, err_hash);
       console.log(err);
@@ -118,6 +123,14 @@
           window.__running = true;
           window.shouldStop = false;
           window.digest(e.data.script);
+          console.log('receive BUILD REQUESST', e);
+          if (e.data.width && e.data.height){
+            let elCanvas = document.querySelector('#result_canvas');     
+            elCanvas.width = parseInt(e.data.width);
+            elCanvas.height = parseInt(e.data.height);
+            window.VIEWPORT_WIDTH = elCanvas.width;
+            window.VIEWPORT_HEIGHT = elCanvas.height;
+          }
           window.parent.postMessage({ tx: 'sandbox-build-start' }, e.origin);
           break;
         case 'harbor-stop':
@@ -134,7 +147,7 @@
           }, e.origin);
           break;
         case 'harbor-resize':
-          let elCanvas = document.querySelector('#result_canvas');                
+          let elCanvas = document.querySelector('#result_canvas');
           elCanvas.width = parseInt(e.data.width);
           elCanvas.height = parseInt(e.data.height);
           window.VIEWPORT_WIDTH = elCanvas.width;
@@ -148,19 +161,19 @@
 
     // transmit
     window.txBuildSuccess = () => {
-      window.parent.postMessage({ tx: 'sandbox-build-success' });
+      window.parent.postMessage({ tx: 'sandbox-build-success' }, "*");
     };
 
     window.txError = (name, err, err_hash) => {
-      window.parent.postMessage({ tx: 'sandbox-error', name: name, err: err, hash: err_hash });
+      window.parent.postMessage({ tx: 'sandbox-error', name: name, err: err, hash: err_hash }, "*");
     };
 
     window.txStackLine = (source, lineno, colno, err_hash) => {
-      window.parent.postMessage({ tx: 'sandbox-stack-line', source: source, lineno: lineno, colno: colno, hash: err_hash });
+      window.parent.postMessage({ tx: 'sandbox-stack-line', source: source, lineno: lineno, colno: colno, hash: err_hash }, "*");
     };
 
-    window.txErrorFrag = (substr) => {
-      window.parent.postMessage({ tx: 'sandbox-error-frag', frag: substr });
+    window.txErrorFrag = (substr, err_hash) => {
+      window.parent.postMessage({ tx: 'sandbox-error-frag', frag: substr, hash: err_hash }, "*");
     };    
 
     window.digest = (script) => {
@@ -182,6 +195,7 @@
           let message = e.message ?? 'unknown error';
           const err = `Unhandled error caught by eval catch: message: ${message}`;
           const err_hash = window.__generateErrorHash(message, e.stack ?? {});
+          console.log(err);
           // console.error(e.message);
           window.txError(name, message, err_hash);
           // console.log('EVAL-CATCH DUMP', e);
@@ -191,7 +205,6 @@
           }
         }
       }).then(() => {
-        console.log("we built it");
         window.txBuildSuccess();
         return true;
       }).catch(e => {
@@ -199,10 +212,13 @@
         let message = e.message ?? 'unknown error';
         const err = `Unhandled error caught by promise catch: message: ${message}`;
         const err_hash = window.__generateErrorHash(message, e.stack ?? {});
+        console.log(err);
         // console.error(e.message);
         window.txError(e.name, message, err_hash);
-        console.log(err);
-        // console.log('PROMISE-CATCH DUMP', e);
+        if (e.name === 'TaichiJSError' && e.info?.code) {
+          window.txErrorFrag(e.info.code, err_hash);
+        }
+        // console.log('PROMISE-CATCH DUMP', name, e.info);
         if (e.stack) {
           const stackLines = e.stack.split("\n");
           window.__processStackLines(stackLines, err_hash);

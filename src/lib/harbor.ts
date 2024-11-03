@@ -73,23 +73,25 @@ export const rxSandbox = (e: Event) => {
 };
 
 // transmit
-export const txBuild = (sandbox: Window, script: string) => {
-  sandbox.postMessage({ tx: 'harbor-build', script: script });
+export const txBuild = (sandbox: Window, script: string, width: number = 0, height: number = 0) => {
+  sandbox.postMessage({ tx: 'harbor-build', script: script, width: width, height: height }, "*");
   window.dispatchEvent(new CustomEvent('build-start', {
     detail: {
       script:   script,
+      width:    width,
+      height:   height,
     }
   }));
 };
 
 export const txStop = (sandbox: Window) => {
-  sandbox.postMessage({ tx: 'harbor-stop' });
+  sandbox.postMessage({ tx: 'harbor-stop' }, "*");
 };
 
 export const txStatus = (sandbox: Window) => {
-  sandbox.postMessage({ tx: 'harbor-status' });
+  sandbox.postMessage({ tx: 'harbor-status' }, "*");
 };
 
 export const txResize = (sandbox: Window, width:number, height:number ) => {
-  sandbox.postMessage({ tx: 'harbor-resize', width: width, height: height });
+  sandbox.postMessage({ tx: 'harbor-resize', width: width, height: height }, "*");
 };

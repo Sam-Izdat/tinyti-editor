@@ -11,4 +11,3 @@ export { default as MonacoEditor }        from './monaco.svelte';
 export { default as InfoKeyboard }        from './info_keyboard.svelte';
 export { default as ScreenFailedFetch }   from './error_fetch.svelte';
 export { default as StackTraceTable }     from './stack_trace.svelte';
-export { default as CallGraph }          from './call_graph.svelte';

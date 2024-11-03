@@ -17,7 +17,7 @@
 
   import * as harbor from '$lib/harbor';
   import { StackTrace } from '$lib/stores';
-  import { StackTraceTable, CallGraph } from '$lib/components';
+  import { StackTraceTable } from '$lib/components';
 
   // Global state
   import { 
@@ -51,6 +51,7 @@
 
   // I/O observers  
   import { observeKeyboard } from '$lib/keybind';
+  let resizeObserver;
 
   // Core components
   import { MonacoEditor, AnchorLightSwitch, AnchorScriptStatus, DocTitleBadge, DocMenuBadge }  from '$lib/components';
@@ -82,7 +83,7 @@
       }
     }
   });
-  
+
   // Create a promise to wait for the editor instance
   const waitForEditorInstance = () => {
     return new Promise((resolve) => {
@@ -100,6 +101,7 @@
   // UI actions   
   const reqOpenArchiveDrawer = async () => {
     if (!$drawerStore.open){
+      reqStopAnimation();
       await docHandler.refreshDocList();
       drawerContentStore.set({
         id: 'archive',
@@ -121,60 +123,64 @@
 
   let autoBuildTimeoutID: number;
 
-  const reqBuild = async () => {
-    // console.log(canvasframeWindow);
-    // console.log('should have said boo');
-
-    // canvasframeWindow.baz = new Function("return () => {""}")();
-    // canvasframeWindow.baz();
-    // console.log(canvasframeWindow.baz);
-
-    // return;
-    window.shouldStop = true;
-    Log.clearScriptLog();
-
-    let buildSuccessful = true;
-    let editorVal = monacoEditor.getValue()
-    let userScript;
-    setTimeout(async () => {
-
-      let buildSuccessful = true;
-      let editorVal = monacoEditor.getValue();
-
-      let canvasframe = document.querySelector("#canvasframe");
-      let canvasframeWindow = canvasframe.contentWindow;
-
-      harbor.txBuild(canvasframeWindow, editorVal);
-
-      // try {
-      //   canvasframeWindow.console.error = (e, ...args) => {
-      //     Log.scriptError(e, ...args);
-      //     console.log(e, ...args);
-      //     // console.trace(e);
-      //   };
-      //   canvasframeWindow.digest(editorVal);
-      // } catch (e) {
-      //     buildSuccessful = false;
-      //     Log.scriptError(e);
-      // } finally {
-      //   // cleanup
-      // }
-
-      // if (buildSuccessful) {
-      //     Log.scriptSuccess("build completed");
-      // }
-
-
-    }, 120);
-
-    let flashCol = buildSuccessful 
-      ? ($isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1])
-      : ($isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1]);
+  const buildSuccess = () => {
+    Log.scriptSuccess("build completed");
+    const flashCol = $isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1];
     pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
+  };
+
+  const buildError = () => {
+    const flashCol = $isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1];
+    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
+  };
+
+  const reqBuild = async () => {
+    reqStopAnimation();
+    Log.clearScriptLog();
+    let buildSuccessful = true;
+    let editorVal = monacoEditor.getValue();
 
 
-    
-  }
+    let canvasframe = document.querySelector("#canvasframe");
+    let canvasframeWindow = canvasframe.contentWindow;
+
+    // we don't want to separately message and wait for a resize request
+    const element = document.querySelector('#ct2');
+    const {width, height} = element.getBoundingClientRect();
+    canvasframe.width = width;
+    canvasframe.height = height;
+
+    harbor.txBuild(canvasframeWindow, editorVal, width, height);
+
+  };
+
+  const reqStopAnimation = () => {    
+    Log.clearScriptLog();
+    let canvasframe = document.querySelector("#canvasframe");
+    let canvasframeWindow = canvasframe.contentWindow;
+    harbor.txStop(canvasframeWindow);
+  };
+
+  const reqResize = (reqWidth = null, reqHeight = null) => {
+    let width = 0;
+    let height = 0;
+    if (reqWidth === null || reqHeight === null) {
+      const element = document.querySelector('#ct2');
+      const rectEl = element.getBoundingClientRect();
+      width = rectEl.width;
+      height = rectEl.height;
+      Log.debug(`Resizing to ${width}x${height} of `, element);
+    } else {
+      width = reqWidth;
+      height = reqHeight;
+    }    
+    let canvasframe = document.querySelector("#canvasframe");
+    let canvasframeWindow = canvasframe.contentWindow;
+    canvasframe.width = width;
+    canvasframe.height = height;
+    harbor.txResize(canvasframeWindow, width, height);
+  };
+
   const reqNewDoc = () => {
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
@@ -186,7 +192,7 @@
     } else {
       docHandler.newDoc();
     }
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   };
 
@@ -205,7 +211,7 @@
       docHandler.loadDoc(uuid, adapter); 
       drawerStore.close();
     }
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   };
 
@@ -221,7 +227,7 @@
       docHandler.forkDoc();
     }
     reqRenameDoc();
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   };
 
@@ -238,7 +244,7 @@
     }
     modalStore.close();
     reqRenameDoc(baseFilename ?? '');
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   };
 
@@ -306,7 +312,7 @@
     } else {
       docHandler.loadVersion(parseInt(v));
     }
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   };
 
@@ -321,7 +327,7 @@
     } else {
       Log.toastInfo('no changes to revert')
     }
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   }
 
@@ -334,7 +340,7 @@
       txtConfirm: 'Rename',
       onConfirm: (inputVal) => { docHandler.renameDoc(inputVal); }
     })
-    window.shouldStop = true;
+    reqStopAnimation();
     Log.clearScriptLog();
   };
 
@@ -348,7 +354,10 @@
   };
 
   // When browser stuff is available
-  onMount(async () => {
+  onMount(async () => {      
+    if (typeof ResizeObserver === 'undefined') {
+      const { ResizeObserver } = await import('resize-observer-polyfill');
+    }
     if (browser) {
       document.querySelector('body').setAttribute('data-theme', cfg.APP_THEME);
 
@@ -362,7 +371,6 @@
       monacoEditor.onDidChangeModelContent(() => {
         const content = monacoEditor.getValue();
         docHandler.updateDoc(content);
-        window.shouldStop = true;
         Log.clearScriptLog();
         if ($isAutoBuild) {
           clearTimeout(autoBuildTimeoutID);   
@@ -419,6 +427,17 @@
 
       harbor.rxListen();
 
+      // Observe viewport resize
+      resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+          const { width, height } = entry.contentRect;
+          reqResize(width, height);
+        }
+      });
+      const viewportEl = document.querySelector('#ct2');
+      resizeObserver.observe(viewportEl);
+
+
       // Custom events from keybind
       observeKeyboard();
       window.addEventListener('save-document', reqSaveDoc);
@@ -428,6 +447,9 @@
       window.addEventListener('archive-shelf', reqOpenArchiveDrawer);
       window.addEventListener('switch-view', navHandler.switchViewEvent);
       window.addEventListener('build-script', reqBuild);
+
+      window.addEventListener('build-success', buildSuccess);
+      window.addEventListener('build-error', buildError);
 
       reqBuild();
     }
@@ -446,13 +468,18 @@
       window.removeEventListener('switch-view', navHandler.switchViewEvent);
       window.removeEventListener('build-script', reqBuild);
 
+      window.removeEventListener('build-success', buildSuccess);
+      window.removeEventListener('build-error', buildError);
+
       monacoEditor?.dispose();
       docHandler?.dispose();
       navHandler?.dispose();
       screenHandler?.dispose();
       mobileHandler?.dispose();
-    }
 
+      resizeObserver.unobserve(element);
+      resizeObserver.disconnect();
+    }
     unsubscribeDocSession();
   });
 
@@ -506,7 +533,7 @@
       </svelte:fragment>
     </AppRailTile>
     <hr classs="hr m-1"/>
-    <AnchorScriptStatus buildCallback={reqBuild} />
+    <AnchorScriptStatus buildCallback={reqBuild} stopCallback={reqStopAnimation} />
     <AppRailAnchor 
       href="#" 
       title="Toggle Auto-Build" 
@@ -612,7 +639,7 @@
         height="800" 
         src="./canvasframe.html" 
         scrolling="no" 
-        sandbox="allow-scripts allow-popups allow-same-origin"  
+        sandbox="allow-scripts allow-popups"  
         title="canvasframe"> 
 
       <!-- <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-[100%] w-[100%]">
@@ -651,9 +678,6 @@
       </div>
       <div>        
         <StackTraceTable monacoEditor={monacoEditor} />
-      </div>
-      <div>
-        <!-- <CallGraph /> -->
       </div>
       <div class="flex p-1">
         <span class="badge variant-soft">This is where the controls would be.</span>

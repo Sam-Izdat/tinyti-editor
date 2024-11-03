@@ -2,30 +2,29 @@
   import { Log } from '$lib';
   import { onDestroy } from 'svelte';
   import { popup } from '@skeletonlabs/skeleton';
-  import { Icon, Play, CheckCircle, ExclamationTriangle, ExclamationCircle } from "svelte-hero-icons";
   import { scriptErrorLog } from '$lib/stores'; // Store for message queue
   import { AppRailAnchor } from '@skeletonlabs/skeleton';
   import * as km from '$lib/keymap';
 
   export let buildCallback = () => {};
+  export let stopCallback = () => {};
 
-  // Define the types for messages
-  type MessageType = 'info' | 'success' | 'warning' | 'error';
+  type MessageStatus = 'info' | 'success' | 'warning' | 'error';
 
   interface Message {
-    type: MessageType;
+    status: MessageStatus;
     message: string;
   }
 
   let messages: Message[] = [];
   
-  // Subscribe to the store for message updates
   scriptErrorLog.subscribe((log) => {
     messages = log;
   });
-  // Helper function to get the class based on the message type
-  const getClass = (type: MessageType) => {
-    switch (type) {
+
+  const getClass = (status: MessageStatus) => {
+    console.log('~~~~~~~~', status);
+    switch (status) {
       case 'info':
         return 'variant-filled-info';
       case 'success':
@@ -39,32 +38,40 @@
     }
   }
 
-  // Reactive variable to hold the class based on script status
+  let scriptStatus = 0;
   let statusClass = '';
-  let activeIcon = Play;
+  let activeIcon = hero.Play;
   
-  // Subscribe to the scriptStatus store
   const unsubscribe = Log.getInstance().scriptStatus.subscribe(status => {
+    scriptStatus = status;
     statusClass = '';
-    activeIcon = Play;
+    activeIcon = hero.Play;
     if (status & Log.ScriptStatus.SUCCESS) {
       statusClass = 'bg-success-500';
-      activeIcon = CheckCircle;
+      activeIcon = hero.Stop;
     }
     if (status & Log.ScriptStatus.WARNING) {
       statusClass = 'bg-warning-500';
-      activeIcon = ExclamationTriangle;
+      activeIcon = hero.ExclamationTriangle;
     }
     if (status & Log.ScriptStatus.ERROR) {
       statusClass = 'bg-error-500';
-      activeIcon = ExclamationCircle;
+      activeIcon = hero.ExclamationCircle;
     }
+
+    console.log('####', status, scriptStatus, statusClass, activeIcon);
   });
 
   // Cleanup subscription when component is destroyed
   onDestroy(() => {
     unsubscribe();
   });
+
+  // Icons
+  import { Icon } from 'svelte-hero-icons';
+  import * as hero from 'svelte-hero-icons';
+  import { CustomIcon } from '$lib/components/icons';
+  import * as ico from '$lib/components/icons';
 </script>
 
 <!-- Need wrapper because AppRailAnchor can't use popup -->
@@ -76,7 +83,7 @@
   title="Build (alt+{km.keyBuild})" 
   class={statusClass} 
   style="display:block;"
-  on:click={buildCallback}
+  on:click={scriptStatus & Log.ScriptStatus.SUCCESS ? stopCallback : buildCallback}
 >
   <Icon src="{activeIcon}" size="16" style="margin: 4px auto;" solid />
   <div 
@@ -84,8 +91,8 @@
     data-popup="error-popup"
     style="z-index: 100;">
     <div class="card p-1 variant-filled-surface max-h-screen overflow-y-auto">
-      {#each messages as { type, message } (message)}
-        <aside class="alert p-1 m-1 {getClass(type)}">
+      {#each messages as { status, message } (message)}
+        <aside class="alert p-1 m-1 {getClass(status)}">
           <div class="alert-message text-xs">
             {message}
           </div>

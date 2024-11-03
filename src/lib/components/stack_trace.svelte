@@ -5,7 +5,7 @@
   import { StackTrace } from '$lib/stores';
   import type { StackTraceMap, StackTraceLine } from '$lib/stores/stack_trace';
   import { instance } from "@viz-js/viz";
-  import { makeDotCallGraph } from '$lib';
+  import { makeDotCallGraph, findEnclosingJSFunction } from '$lib';
 
   import type * as Monaco from 'monaco-editor/esm/vs/editor/editor.api';
   export let monacoEditor: Monaco.editor.IStandaloneCodeEditor;
@@ -25,39 +25,31 @@
   import { CustomIcon } from '$lib/components/icons';
   import * as ico from '$lib/components/icons';
 
-  const highlightText = (searchString) => {
-    // Get the editor model
-    const model = monacoEditor;
+  const findCodeString = (searchString) => {
+    const model = monacoEditor.getModel();
     const content = model.getValue();
 
-    // Find position of the search string
     const startIndex = content.indexOf(searchString);
-    if (startIndex === -1) return; // Text not found
+    if (startIndex === -1) return; 
 
-    // Calculate start and end position
     const startPosition = model.getPositionAt(startIndex);
     const endPosition = model.getPositionAt(startIndex + searchString.length);
-
-    // Set markers for highlighting
-    monaco.editor.setModelMarkers(model, 'highlightOwner', [
-      {
-        severity: monaco.MarkerSeverity.Warning, // You can change this to Error, Info, etc.
-        startLineNumber: startPosition.lineNumber,
-        startColumn: startPosition.column,
-        endLineNumber: endPosition.lineNumber,
-        endColumn: endPosition.column,
-        message: `Highlight: "${searchString}"`,
-      }
-    ]);
+    return {
+      lineStart: startPosition.lineNumber, 
+      colStart: startPosition.column, 
+      lineEnd: endPosition.lineNumber, 
+      colEnd:endPosition.column,
+      };
   };
 
-  const markLineCol = (err, lineno, colno) => {
+  const markLineCol = (err, lineStart, colStart, lineEnd = null, colEnd = null) => {
     const model = monacoEditor.getModel();
-    const wordInfo = model.getWordAtPosition({ lineNumber: lineno, column: colno });
-    const endColumn = wordInfo ? wordInfo.endColumn : startColumn + 1;
+    const wordInfo = model.getWordAtPosition({ lineNumber: lineStart, column: colStart });
+    const lineContent = model.getLineContent(lineStart);
+    const colEndToken = wordInfo ? wordInfo.endColumn : lineContent.length + 1;
     decorations.set([
       {
-        range: new monaco.Range(lineno, 1, lineno, 1),
+        range: new monaco.Range(lineStart, 1, lineStart, 1),
         options: {
           isWholeLine: true,
           className: "compileErrorGlyph",
@@ -68,10 +60,10 @@
     monaco.editor.setModelMarkers(model, 'taichijs', [
       {
         severity: monaco.MarkerSeverity.Error,
-        startLineNumber: lineno,
-        startColumn: colno,
-        endLineNumber: lineno,
-        endColumn: endColumn,
+        startLineNumber: lineStart,
+        startColumn: colStart,
+        endLineNumber: lineEnd ?? lineStart,
+        endColumn: colEnd ?? colEndToken,
         message: err,
       }
     ]);
@@ -90,15 +82,20 @@
 
       // Maybe, maybe not:
       // rankdir="LR";
+
+      if (nextNode) dotGraph = dotGraph.replace('"'+currentNode+'" -> "'+nextNode+'";', '');
+      if (prevNode) dotGraph = dotGraph.replace('"'+prevNode+'" -> "'+currentNode+'";', '');
+      // ${dotGraph}
       const dot = `
   digraph { 
   size="6.5,6.5"
+  rankdir="LR"
   node [colorscheme=set39]
   node [shape=ellipse, style="filled", fillcolor=4, fontname="Consolas"]
-    ${currentNode}
-  ${nextNode ? `node [shape=record, style="filled", fillcolor=2, fontname="Consolas"]\n  `+nextNode : ''}
-  ${prevNode ? `node [shape=record, style="filled", fillcolor=6, fontname="Consolas"]\n  `+prevNode : ''}
-  node [shape=box, style="filled", fillcolor=1, fontname="Consolas"];
+    "${currentNode}"
+  ${nextNode ? 'node [shape=record, style="filled", fillcolor=2, fontname="Consolas"]\n  "'+currentNode+'" -> "'+nextNode+'"\n' : ''}
+  ${prevNode ? 'node [shape=record, style="filled", fillcolor=6, fontname="Consolas"]\n  "'+prevNode+'" -> "'+currentNode+'"\n' : ''}
+  node [shape=box, style="filled", fillcolor=1, fontname="Consolas"]; 
     ${dotGraph}
     bgcolor=transparent
   }`;
@@ -125,31 +122,45 @@
     if (index === -1) return {};
 
     return {
-      previous: index > 0 ? lines[index - 1].source : '',
-      next: index < (lines.length - 1) ? lines[index + 1].source : '',
+      next: index > 0 ? lines[index - 1].source : '',
+      previous: index < (lines.length - 1) ? lines[index + 1].source : '',
     };
   };
 
   const makeGraph = (id, source, lineno, colno) => {
+    lineno = parseInt(lineno);
+    colno = parseInt(colno);
     const containerEl = document.querySelector(`#row_${id}_${lineno}_${colno}`);
     if (containerEl.classList.contains('hidden')) {        
-      const dot = makeDotCallGraph(script, source);
+      const dot = makeDotCallGraph(script, source, lineno, colno);
       const adjacent = findAdjacentLines(id, source, lineno, colno);
       drawSVG(id, lineno, colno, dot, source, adjacent.previous, adjacent.next);
     }    
     containerEl.classList.toggle('hidden');
   };
 
+  const jumpToPos = (lineno, colno) => {
+    monacoEditor.setPosition({ lineNumber: lineno, column: colno });
+    monacoEditor.revealPositionInCenter({ lineNumber: lineno, column: colno });
+  }
+
+  const handleBuildStart = (e: CustomEvent) => {
+    if (decorations) unMarkLines();
+    decorations = monacoEditor.createDecorationsCollection([]); 
+    StackTrace.clear();
+    errors.clear();
+    script = e.detail.script ?? '';
+  };
+
+  const handleErrorSelect = (message, lineno, colno) => {
+    unMarkLines(); 
+    markLineCol(message, lineno, colno);
+    jumpToPos(lineno, colno);
+  }
+
   // Register event listeners on mount and remove them on destroy
   onMount(async () => {
     if (browser) {
-      const handleBuildStart = (e: CustomEvent) => {
-        if (decorations) unMarkLines();
-        decorations = monacoEditor.createDecorationsCollection([]); 
-        StackTrace.clear();
-        errors.clear();
-        script = e.detail.script ?? '';
-      }
 
       const handleError = (e: CustomEvent) => {
         const { name, message, hash } = e.detail;
@@ -168,6 +179,13 @@
       const handleErrorFrag = (e: CustomEvent) => {
         const { frag, hash } = e.detail;
         Log.debug(`Error fragment received: ${frag}`);
+        const positions = findCodeString(frag);
+        const source = findEnclosingJSFunction(script, positions.lineStart, positions.colStart );
+        StackTrace.addTrace(hash, { source: source, lineno: positions.lineStart, colno: positions.colStart });
+        if ($StackTrace.size == 1 && $StackTrace.values().next().value.length == 1) {
+          unMarkLines();
+          markLineCol(errors.get(hash) ?? 'Taichi JS error', positions.lineStart, positions.colStart, positions.lineEnd, positions.colEnd);
+        }
         // Optionally, you could also update StackTrace or handle the fragment differently here
       };
 
@@ -207,7 +225,7 @@
         <tr>
           <td class="!pt-1 !pb-1">
             <button class="w-full text-left" on:click={
-              () => { unMarkLines(); markLineCol(errors.get(errorId), lineno, colno); }
+              () => { handleErrorSelect(errors.get(errorId), lineno, colno) }
             }>
               {source}
             </button>
@@ -234,6 +252,7 @@
 {/each}
 <style>
 :global(.callgraph > svg, .callgraph > svg)  {
+  width: 100%;
   filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.4)) !important;
 }
 :global(.compileErrorGlyph) {

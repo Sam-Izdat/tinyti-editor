@@ -20,7 +20,6 @@
   onMount(async () => {
     // Import and send to store
     monaco = (await import('./monaco.ts')).default;
-    console.warn('++++++++', monaco);
     monacoStore.set(monaco);
 
     observeThemeChange(monaco.editor);

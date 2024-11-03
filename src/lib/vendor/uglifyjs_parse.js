@@ -5276,6 +5276,14 @@ const uglifyJS = (() => {
     AST_Defun,
     AST_Call,
     AST_Lambda,
+    AST_SymbolRef,
+    AST_VarDef,
+    AST_Assign,
+    AST_Dot,
+    AST_Class,
+    AST_ClassMethod,
+    AST_ClassField,
+    AST_Sub,
   };
 })();
 
