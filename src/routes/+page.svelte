@@ -161,6 +161,7 @@
 
   const reqClearStopAnimation = () => {    
     Log.clearScriptLog();
+    StackTrace.clear();
     reqStopAnimation();
   };
   const reqResize = (reqWidth = null, reqHeight = null) => {

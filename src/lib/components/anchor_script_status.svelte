@@ -84,7 +84,7 @@
 >
 <AppRailAnchor 
   href="#" 
-  title="Build (alt+{km.keyBuild})" 
+  title="Build / Stop (alt+{km.keyBuild})" 
   class={statusClass} 
   style="display:block;"
   on:click={() => {
