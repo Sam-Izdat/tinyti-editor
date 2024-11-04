@@ -214,7 +214,7 @@
     harbor.txResize(canvasframeWindow, width, height);
   };
 
-  const reqNewDoc = () => {
+  const reqNewDoc = async () => {
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
         ...modals.modalConfirm, 
@@ -225,7 +225,7 @@
     } else {
       docHandler.newDoc();
     }
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
   };
 
   const reqLoadDoc = async (uuid: string, adapter: string) => {
@@ -243,10 +243,10 @@
       docHandler.loadDoc(uuid, adapter); 
       drawerStore.close();
     }
-    reqClearStopAnimation();
+    await reqBuild()
   };
 
-  const reqForkDoc = () => {
+  const reqForkDoc = async () => {
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
         ...modals.modalConfirm, 
@@ -258,10 +258,10 @@
       docHandler.forkDoc();
     }
     reqRenameDoc();
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
   };
 
-  const reqImportFile = (content: string, baseFilename?: string) => {
+  const reqImportFile = async (content: string, baseFilename?: string) => {
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
         ...modals.modalConfirm, 
@@ -274,7 +274,7 @@
     }
     modalStore.close();
     reqRenameDoc(baseFilename ?? '');
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
   };
 
   const reqExportFile = () => {
@@ -306,7 +306,7 @@
         await docHandler.refreshDocList(); 
       }
     } else { Log.toastInfo('no changes to save') }
-    reqBuild();
+    await reqBuild();
   };
 
   const reqSaveDocNewVersion = async () => {
@@ -315,7 +315,7 @@
       docHandler.loadLastVersion();
       docHandler.refreshDocList();
     } else { Log.toastInfo('no changes to save') }
-    reqBuild();
+    await reqBuild();
   };
 
   const reqDeleteDoc = async (uuid: string, adapter: string) => {
@@ -330,7 +330,7 @@
     });
   };
 
-  const reqSwitchDocVersion = (v) => {
+  const reqSwitchDocVersion = async (v) => {
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
         ...modals.modalConfirm, 
@@ -341,10 +341,10 @@
     } else {
       docHandler.loadVersion(parseInt(v));
     }
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
   };
 
-  const reqRevertDoc = () => {
+  const reqRevertDoc = async () => {
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
         ...modals.modalConfirm, 
@@ -355,10 +355,10 @@
     } else {
       Log.toastInfo('no changes to revert')
     }
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
   }
 
-  const reqRenameDoc = (name?: string) => {
+  const reqRenameDoc = async (name?: string) => {
     modalStore.trigger({
       ...modals.modalInput, 
       message: 'What shall we call this?',
@@ -367,10 +367,10 @@
       txtConfirm: 'Rename',
       onConfirm: (inputVal) => { docHandler.renameDoc(inputVal); }
     })
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
   };
 
-  const reqSaveMenu = () => {
+  const reqSaveMenu = async () => {
     modalStore.trigger({
       ...modals.modalSave, 
       session: dsCurrentSession,
@@ -478,7 +478,7 @@
       window.addEventListener('build-success', buildSuccess);
       window.addEventListener('build-error', buildError);
 
-      reqBuild();
+      await reqBuild();
     }
   });
 
