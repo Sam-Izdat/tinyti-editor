@@ -487,8 +487,8 @@
       window.addEventListener('canvas-ready', canvasReady);
       window.addEventListener('build-success', buildSuccess);
       window.addEventListener('build-error', buildError);
-      
-      monacoEditor.focus();
+
+      monacoEditor.onDidLayoutChange(() => { monacoEditor.focus() });
       await reqBuild();
     }
   });
