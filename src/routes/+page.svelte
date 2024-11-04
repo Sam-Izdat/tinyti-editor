@@ -487,7 +487,8 @@
       window.addEventListener('canvas-ready', canvasReady);
       window.addEventListener('build-success', buildSuccess);
       window.addEventListener('build-error', buildError);
-
+      
+      monacoEditor.focus();
       await reqBuild();
     }
   });
