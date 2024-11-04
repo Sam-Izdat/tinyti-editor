@@ -166,7 +166,7 @@
     await reqClearStopAnimation();
     let buildSuccessful = true;
     let editorVal = monacoEditor.getValue();
-    
+
     await waitForCanvas();
     let canvasframe = document.querySelector("#canvasframe");
     let canvasframeWindow = canvasframe.contentWindow;
@@ -239,6 +239,7 @@
   };
 
   const reqLoadDoc = async (uuid: string, adapter: string) => {
+    await reqClearStopAnimation();
     if (dsCurrentSession.unsavedChanges){
       modalStore.trigger({
         ...modals.modalConfirm, 
@@ -253,7 +254,8 @@
       docHandler.loadDoc(uuid, adapter); 
       drawerStore.close();
     }
-    await reqBuild()
+    // wait for pane animation to complete
+    setTimeout(reqBuild, 350);
   };
 
   const reqForkDoc = async () => {
