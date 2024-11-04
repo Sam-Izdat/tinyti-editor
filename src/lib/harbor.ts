@@ -23,9 +23,11 @@ export const rxSandbox = (e: Event) => {
     // RESP.
     case 'sandbox-build-start':
       Log.debug('Sandbox build started.')
+      window.dispatchEvent(new CustomEvent('build-started'));
       break;
     case 'sandbox-render-stop':
       Log.debug('Sanbox render stopped.');
+      window.dispatchEvent(new CustomEvent('render-stopped'));
       break;
     case 'sandbox-status-report':
       Log.debug('Sandbox status received. ', e.data.status);
@@ -34,6 +36,10 @@ export const rxSandbox = (e: Event) => {
       Log.debug('Sandbox resize confirmation received.');
       break;
     // SPONT.
+    case 'sandbox-ready':
+      Log.debug('Sandbox ready.');
+      window.dispatchEvent(new CustomEvent('canvas-ready'));
+      break;
     case 'sandbox-build-success':
       Log.debug('Sandbox build successful.');
       window.dispatchEvent(new CustomEvent('build-success'));
@@ -66,6 +72,9 @@ export const rxSandbox = (e: Event) => {
         },
       }));
       break;
+    case 'sandbox-restart-confirm':
+      Log.debug('Sanbox restart confirmed.');
+      break;
     // I dont think a default warning is necessary. Something will be always spamming messages, for some reason.
     // default:
     //   Log.warning('Unrecognized message: ', e);
@@ -86,6 +95,10 @@ export const txBuild = (sandbox: Window, script: string, width: number = 0, heig
 
 export const txStop = (sandbox: Window) => {
   sandbox.postMessage({ tx: 'harbor-stop' }, "*");
+};
+
+export const txRestart = (sandbox: Window, width: number, height: number) => {
+  sandbox.postMessage({ tx: 'harbor-restart', width: width, height: height }, "*");
 };
 
 export const txStatus = (sandbox: Window) => {

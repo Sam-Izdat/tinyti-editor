@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import { currentView } from '$lib/stores/app_state';
 import * as panes from '$lib/panes';
 import { Log } from '$lib';
+import { isReady } from '$lib/stores';
 
 export class NavHandler {
   constructor() {
@@ -10,7 +11,7 @@ export class NavHandler {
     this.unsubscribeAll = [
       currentView.subscribe(view => {
         this.view = view;
-        this.switchView()
+        this.switchView();
       }),
     ];
   }
@@ -24,20 +25,24 @@ export class NavHandler {
   switchView() {
     switch (this.view) {
       case 0:
+        isReady.set(false);
         panes.returnContentToSplit(); 
         panes.showView(this.view);
         break;
       case 1:
+        isReady.set(false);
         panes.returnContentToSplit(); 
         panes.moveContent('ct1', 'cr-full'); 
         panes.showView(this.view);
         break;
       case 2:
+        isReady.set(false);
         panes.returnContentToSplit(); 
         panes.moveContent('ct2', 'cr-full'); 
         panes.showView(this.view);
         break;
       case 3:
+        isReady.set(false);
         panes.returnContentToSplit(); 
         panes.moveContent('ct3', 'cr-full'); 
         panes.showView(this.view);

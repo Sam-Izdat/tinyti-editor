@@ -28,6 +28,8 @@
     orientationLandscape,
     isReadOnly,
     isDark,
+    isReady,
+    isPlaying,
   } from '$lib/stores';
 
   // Sessions
@@ -52,6 +54,7 @@
   // I/O observers  
   import { observeKeyboard } from '$lib/keybind';
   let resizeObserver;
+  let viewportEl;
 
   // Core components
   import { MonacoEditor, AnchorLightSwitch, AnchorScriptStatus, DocTitleBadge, DocMenuBadge }  from '$lib/components';
@@ -97,6 +100,19 @@
 
   let setEditorInstance;
 
+  const waitForEvent = async (eventType) => {
+    return new Promise((resolve) => {
+      window.addEventListener(eventType, resolve, { once: true });
+    });
+  };
+
+  const waitForCanvas = async (fn = null) => {
+    if (!$isReady){;
+      await waitForEvent('canvas-ready');
+      $isReady = true; 
+    }
+    if (fn) setTimeout(fn, 5);
+  };
 
   // UI actions   
   const reqOpenArchiveDrawer = async () => {
@@ -126,53 +142,67 @@
   const buildSuccess = () => {
     Log.scriptSuccess("build completed");
     const flashCol = $isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1];
-    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
+    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR);
+    $isPlaying = true;
   };
 
   const buildError = () => {
     const flashCol = $isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1];
-    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR) ;
+    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR);
+    $isPlaying = false;
   };
 
   const reqBuild = async () => {
-    reqClearStopAnimation();
+    await reqClearStopAnimation();
     let buildSuccessful = true;
     let editorVal = monacoEditor.getValue();
 
 
+    await waitForCanvas();
     let canvasframe = document.querySelector("#canvasframe");
     let canvasframeWindow = canvasframe.contentWindow;
 
     // we don't want to separately message and wait for a resize request
-    const element = document.querySelector('#ct2');
-    const {width, height} = element.getBoundingClientRect();
+    const el = document.querySelector('#ct2');
+    const {width, height} = el.getBoundingClientRect();
     canvasframe.width = width;
     canvasframe.height = height;
 
     harbor.txBuild(canvasframeWindow, editorVal, width, height);
-
   };
 
-  const reqStopAnimation = () => {
+  const reqStopAnimation = async () => {
+    $isPlaying = false;
+    await waitForCanvas();
     let canvasframe = document.querySelector("#canvasframe");
     let canvasframeWindow = canvasframe.contentWindow;
     harbor.txStop(canvasframeWindow);
+    await waitForEvent('render-stopped');
   };
 
-  const reqClearStopAnimation = () => {    
+  const handleLayoutChange = async () => {
+    await waitForCanvas();
+    // Can't do txRestart because iframe gets reloaded and script cache lost --
+    // presumably there's some security logic here.
+    if ($isPlaying) {
+      await reqBuild();
+    }
+  };
+
+  const reqClearStopAnimation = async () => {
     Log.clearScriptLog();
     StackTrace.clear();
-    reqStopAnimation();
+    await reqStopAnimation();
   };
   const reqResize = (reqWidth = null, reqHeight = null) => {
     let width = 0;
     let height = 0;
     if (reqWidth === null || reqHeight === null) {
-      const element = document.querySelector('#ct2');
-      const rectEl = element.getBoundingClientRect();
+      const el = document.querySelector('#ct2');
+      const rectEl = el.getBoundingClientRect();
       width = rectEl.width;
       height = rectEl.height;
-      Log.debug(`Resizing to ${width}x${height} of `, element);
+      Log.debug(`Resizing to ${width}x${height} of `, el);
     } else {
       width = reqWidth;
       height = reqHeight;
@@ -362,6 +392,7 @@
       // canvasframeWindow.console.error = (e) => Log.scriptError(e);
 
       await waitForEditorInstance(); 
+      $isReady = true;
       
       // Listen for changes in Monaco editor and update the store
       monacoEditor.onDidChangeModelContent(() => {
@@ -380,7 +411,7 @@
       docHandler    = new DocHandler(dsCurrentSession, monacoEditor);
       navHandler    = new NavHandler();
       screenHandler = new ScreenHandler(window);
-      mobileHandler = new MobileHandler(window);
+      mobileHandler = new MobileHandler(window, {layoutChangeCallback: handleLayoutChange});
 
       // Check if an uploaded file exists in sessionStorage
       const fileData = sessionStorage.getItem('importRequestFile'); 
@@ -429,7 +460,7 @@
           reqResize(width, height);
         }
       });
-      const viewportEl = document.querySelector('#ct2');
+      viewportEl = document.querySelector('#ct2');
       resizeObserver.observe(viewportEl);
 
 
@@ -474,7 +505,7 @@
       screenHandler?.dispose();
       mobileHandler?.dispose();
 
-      resizeObserver.unobserve(element);
+      resizeObserver.unobserve(viewportEl);
       resizeObserver.disconnect();
     }
     unsubscribeDocSession();
@@ -496,6 +527,7 @@
     <AppRailTile 
       title="Split-Pane"
       bind:group={$currentView} 
+      on:change={handleLayoutChange}
       name="tile-0" 
       value={0}>
       <svelte:fragment slot="lead">
@@ -504,7 +536,8 @@
     </AppRailTile>
     <AppRailTile 
       title="View Code"
-      bind:group={$currentView} 
+      bind:group={$currentView}
+      on:change={handleLayoutChange}
       name="tile-1" 
       value={1}>
       <svelte:fragment slot="lead">
@@ -514,6 +547,7 @@
     <AppRailTile 
       title="View Canvas"
       bind:group={$currentView} 
+      on:change={handleLayoutChange}
       name="tile-2" 
       value={2}>
       <svelte:fragment slot="lead">
@@ -523,6 +557,7 @@
     <AppRailTile 
       title="View Controls" 
       bind:group={$currentView} 
+      on:change={handleLayoutChange}
       name="tile-3" 
       value={3}>
       <svelte:fragment slot="lead">

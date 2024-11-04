@@ -24,7 +24,19 @@ export const resetPaneSizes = (): PaneSizes => {
 export const moveContent = (idContent:string, idContainer:string) => {
   const source = document.querySelector('#' + idContent);
   const dest = document.querySelector('#' + idContainer);
+  // const tempContainer = document.createDocumentFragment();
+  // tempContainer.appendChild(source); 
   dest.appendChild(source);
+};
+
+export const showStaging = () => {  
+  const elStaging = document.querySelector('#cr-staging');
+  elStaging.classList.remove("hidden");
+};
+
+export const hideStaging = () => {  
+  const elStaging = document.querySelector('#cr-staging');
+  elStaging.classList.add("hidden");
 };
 
 export const moveContentToStaging = () => {

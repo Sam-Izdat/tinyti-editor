@@ -15,6 +15,7 @@
   <script>
 
     window.__running = false;       // whether animation is running
+    window.__script = '';           // script contents
     window.__scriptLen = 0;         // length of script (for scope)
     window.__stackTrace = [];       // persists from build-start to build-start
     window.VIEWPORT_WIDTH = 800;    // width of parent UI viewport (max canvas width)
@@ -124,11 +125,12 @@
       const tx = e.data.tx;
       switch (tx) {
         case 'harbor-build':
+          window.__script = e.data.script;
           window.__stackTrace = [];
           window.__running = true;
+          window.__stopDelay = 100;
           window.shouldStop = false;
-          window.digest(e.data.script);
-          console.log('receive BUILD REQUESST', e);
+          window.digest(window.__script);
           if (e.data.width && e.data.height){
             // We intentionally don't resize the canvas, and leave that up to the user script:
             // let elCanvas = document.querySelector('#result_canvas');     
@@ -142,7 +144,22 @@
         case 'harbor-stop':
           window.__running = false;
           window.shouldStop = true;
-          window.parent.postMessage({ tx: 'sandbox-render-stop' }, e.origin);
+          setTimeout(() => {
+            window.parent.postMessage({ tx: 'sandbox-render-stop' }, e.origin);
+          }, window.__stopDelay);
+          break;
+        case 'harbor-restart':
+          window.__running = false;
+          window.shouldStop = true;
+          window.VIEWPORT_WIDTH = parseInt(e.data.height);
+          window.VIEWPORT_HEIGHT = parseInt(e.data.width);
+          setTimeout(() => {
+            window.__stackTrace = [];
+            window.__running = true;
+            window.shouldStop = false;
+            window.digest(window.__script);
+          }, window.__stopDelay);
+          window.parent.postMessage({ tx: 'sandbox-restart-confirm'}, e.origin);
           break;
         case 'harbor-status':          
           window.parent.postMessage({ tx: 'sandbox-status-report', 
@@ -167,6 +184,10 @@
     };
 
     // transmit
+    window.txReady = () => {
+      window.parent.postMessage({ tx: 'sandbox-ready'}, "*");
+    };
+
     window.txBuildSuccess = () => {
       window.parent.postMessage({ tx: 'sandbox-build-success' }, "*");
     };
@@ -181,7 +202,7 @@
 
     window.txErrorFrag = (substr, err_hash) => {
       window.parent.postMessage({ tx: 'sandbox-error-frag', frag: substr, hash: err_hash }, "*");
-    };    
+    };
 
     window.digest = (script) => {
       window.__scriptLen = script.split(/\r\n|\r|\n/).length; // lines
@@ -232,6 +253,11 @@
         }
       });
     };
+
+    window.addEventListener("DOMContentLoaded", () => {
+        window.txReady();
+    });
+
     // wrt. Taichi errors, see:
     // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L104
     // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L143

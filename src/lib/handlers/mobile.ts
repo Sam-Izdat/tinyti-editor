@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import { orientationLandscape, currentView, isFullscreen } from '$lib/stores';
 import * as panes from '$lib/panes';
 import { Log } from '$lib';
+import { isReady } from '$lib/stores';
 
 export class MobileHandler {
   constructor(winRef, options = {}) {
@@ -10,6 +11,7 @@ export class MobileHandler {
       requestLandscapeOnFullscreen = true,
     } = options;
     this.requestLandscapeOnFullscreen = requestLandscapeOnFullscreen;
+    this.layoutChangeCallback = options?.layoutChangeCallback ?? (() => {});
 
     this.winRef = winRef;
     this.landscape = get(orientationLandscape);
@@ -41,6 +43,7 @@ export class MobileHandler {
   }
 
   async orientationChange() {
+    isReady.set(false);
     if (this.landscape && this.winRef.screen.orientation.type.startsWith('portrait')) {
       panes.moveContentToStaging();
       orientationLandscape.set(false);     
