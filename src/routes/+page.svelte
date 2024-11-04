@@ -106,18 +106,24 @@
     });
   };
 
-  const waitForCanvas = async (fn = null) => {
+  const waitForCanvas = () => {
     if (!$isReady){;
-      await waitForEvent('canvas-ready');
-      $isReady = true; 
+      return new Promise((resolve) => {
+          const unsubscribe = isReady.subscribe((val) => {
+              if (val === true) {
+                  unsubscribe();
+                  resolve();
+              }
+          });
+      });
     }
-    if (fn) setTimeout(fn, 5);
+    return true;
   };
 
   // UI actions   
   const reqOpenArchiveDrawer = async () => {
     if (!$drawerStore.open){
-      reqStopAnimation();
+      await reqStopAnimation();
       await docHandler.refreshDocList();
       drawerContentStore.set({
         id: 'archive',
@@ -139,6 +145,10 @@
 
   let autoBuildTimeoutID: number;
 
+  const canvasReady = () => {
+    $isReady = true;
+  };
+
   const buildSuccess = () => {
     Log.scriptSuccess("build completed");
     const flashCol = $isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1];
@@ -156,8 +166,7 @@
     await reqClearStopAnimation();
     let buildSuccessful = true;
     let editorVal = monacoEditor.getValue();
-
-
+    
     await waitForCanvas();
     let canvasframe = document.querySelector("#canvasframe");
     let canvasframeWindow = canvasframe.contentWindow;
@@ -172,6 +181,7 @@
   };
 
   const reqStopAnimation = async () => {
+    if (!$isPlaying) return;
     $isPlaying = false;
     await waitForCanvas();
     let canvasframe = document.querySelector("#canvasframe");
@@ -409,7 +419,7 @@
       
       // Set up handlers
       docHandler    = new DocHandler(dsCurrentSession, monacoEditor);
-      navHandler    = new NavHandler();
+      navHandler    = new NavHandler({layoutChangeCallback: handleLayoutChange});
       screenHandler = new ScreenHandler(window);
       mobileHandler = new MobileHandler(window, {layoutChangeCallback: handleLayoutChange});
 
@@ -474,7 +484,8 @@
       window.addEventListener('key-archive-shelf', reqOpenArchiveDrawer);
       window.addEventListener('key-build-script', reqBuild);
       window.addEventListener('key-stop-playback', reqClearStopAnimation);
-
+      
+      window.addEventListener('canvas-ready', canvasReady);
       window.addEventListener('build-success', buildSuccess);
       window.addEventListener('build-error', buildError);
 
@@ -527,7 +538,6 @@
     <AppRailTile 
       title="Split-Pane"
       bind:group={$currentView} 
-      on:change={handleLayoutChange}
       name="tile-0" 
       value={0}>
       <svelte:fragment slot="lead">
@@ -536,8 +546,7 @@
     </AppRailTile>
     <AppRailTile 
       title="View Code"
-      bind:group={$currentView}
-      on:change={handleLayoutChange}
+      bind:group={$currentView} 
       name="tile-1" 
       value={1}>
       <svelte:fragment slot="lead">
@@ -547,7 +556,6 @@
     <AppRailTile 
       title="View Canvas"
       bind:group={$currentView} 
-      on:change={handleLayoutChange}
       name="tile-2" 
       value={2}>
       <svelte:fragment slot="lead">
@@ -557,7 +565,6 @@
     <AppRailTile 
       title="View Controls" 
       bind:group={$currentView} 
-      on:change={handleLayoutChange}
       name="tile-3" 
       value={3}>
       <svelte:fragment slot="lead">

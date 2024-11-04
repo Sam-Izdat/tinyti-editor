@@ -9,9 +9,10 @@ export class MobileHandler {
   constructor(winRef, options = {}) {
     const {
       requestLandscapeOnFullscreen = true,
+      layoutChangeCallback = (() => {}),
     } = options;
     this.requestLandscapeOnFullscreen = requestLandscapeOnFullscreen;
-    this.layoutChangeCallback = options?.layoutChangeCallback ?? (() => {});
+    this.layoutChangeCallback = layoutChangeCallback;
 
     this.winRef = winRef;
     this.landscape = get(orientationLandscape);
