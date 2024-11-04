@@ -4,6 +4,10 @@ import type DocumentSession from '$lib/doc_types';
 import { get } from 'svelte/store';
 import { browser } from "$app/environment";
 
+import { resetPaneSizes } from '$lib/panes';
+import type { PaneSizes } from '$lib/panes';
+import {paneSizes} from '$lib/stores';
+
 // IndexedDB
 import * as storageAdapterIDB from '$lib/storage/indexedDB';
 
@@ -24,12 +28,13 @@ const peristentStorageAvailable = async () => browser ? await navigator.storage.
 // ----------------------------------------------------------------------------
 
 export const documentSession = writable<DocumentSession>({
-  docID: uuidv4(),
-  docName: 'Untitled Script',
-  versionActive: 0,    
-  versionCount: 1,
-  content: [''],
-  unsavedChanges: false
+  docID:          uuidv4(),
+  docName:        'Untitled Script',
+  versionActive:  0,    
+  versionCount:   1,
+  content:        [''],
+  unsavedChanges: false,
+  paneSizes:      null
 });
 
 export const newSession = (docName: string = 'Untitled Script', content:string = '') => {
@@ -111,15 +116,29 @@ export const loadSession = async (uuid: string, adapter: string) => {
   documentSession.set(sessionLoaded);
   documentSession.update(session => {
     session.unsavedChanges = false;
+    session.paneSizes = {...resetPaneSizes(), ...session.paneSizes ?? {}};
+    paneSizes.set(session.paneSizes);
     return session;
   });
 };
 
 export const saveSession = async () => {
   if (await peristentStorageAvailable()) {
-    await storageAdapterIDB.save({ ...get(documentSession), contentBuffer: '', unsavedChanges: false, adapter: 'idb'}); 
+    await storageAdapterIDB.save({ 
+      ...get(documentSession), 
+      contentBuffer: '', 
+      unsavedChanges: false, 
+      adapter: 'idb',
+      paneSizes: get(paneSizes)
+    }); 
   } else {
-    await storageAdapterLS.save({ ...get(documentSession), contentBuffer: '', unsavedChanges: false, adapter: 'ls'})
+    await storageAdapterLS.save({ 
+      ...get(documentSession), 
+      contentBuffer: '', 
+      unsavedChanges: false, 
+      adapter: 'ls',
+      paneSizes: get(paneSizes)
+    })
   }
   
   documentSession.update(session => {      
