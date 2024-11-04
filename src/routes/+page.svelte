@@ -165,7 +165,6 @@
     reqStopAnimation();
   };
   const reqResize = (reqWidth = null, reqHeight = null) => {
-    reqStopAnimation();
     let width = 0;
     let height = 0;
     if (reqWidth === null || reqHeight === null) {
@@ -500,7 +499,7 @@
       name="tile-0" 
       value={0}>
       <svelte:fragment slot="lead">
-        <Icon src="{hero.ViewColumns}" size="16" style="margin: 4px auto;" solid/>
+        <Icon src="{hero.RectangleGroup}" size="16" style="margin: 4px auto;" solid/>
       </svelte:fragment>
     </AppRailTile>
     <AppRailTile 

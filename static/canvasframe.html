@@ -5,15 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sandbox Page</title>
-  <script src="tinyti.umd.js"></script>
-  
+  <style>
+    #result_canvas {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <script src="tinyti.umd.js"></script>  
   <script>
 
     window.__running = false;       // whether animation is running
     window.__scriptLen = 0;         // length of script (for scope)
     window.__stackTrace = [];       // persists from build-start to build-start
-    window.VIEWPORT_WIDTH = 512;    // width of parent UI viewport (max canvas width)
-    window.VIEWPORT_HEIGHT = 512;   // height of parent UI viewport (max canvas height)
+    window.VIEWPORT_WIDTH = 800;    // width of parent UI viewport (max canvas width)
+    window.VIEWPORT_HEIGHT = 600;   // height of parent UI viewport (max canvas height)
 
 
     console.error = (...e) => console.log(...e); 
@@ -125,11 +130,12 @@
           window.digest(e.data.script);
           console.log('receive BUILD REQUESST', e);
           if (e.data.width && e.data.height){
-            let elCanvas = document.querySelector('#result_canvas');     
-            elCanvas.width = parseInt(e.data.width);
-            elCanvas.height = parseInt(e.data.height);
-            window.VIEWPORT_WIDTH = elCanvas.width;
-            window.VIEWPORT_HEIGHT = elCanvas.height;
+            // We intentionally don't resize the canvas, and leave that up to the user script:
+            // let elCanvas = document.querySelector('#result_canvas');     
+            // elCanvas.width = parseInt(e.data.width);
+            // elCanvas.height = parseInt(e.data.height);
+            window.VIEWPORT_WIDTH = parseInt(e.data.width);
+            window.VIEWPORT_HEIGHT = parseInt(e.data.height);
           }
           window.parent.postMessage({ tx: 'sandbox-build-start' }, e.origin);
           break;
@@ -147,11 +153,12 @@
           }, e.origin);
           break;
         case 'harbor-resize':
-          let elCanvas = document.querySelector('#result_canvas');
-          elCanvas.width = parseInt(e.data.width);
-          elCanvas.height = parseInt(e.data.height);
-          window.VIEWPORT_WIDTH = elCanvas.width;
-          window.VIEWPORT_HEIGHT = elCanvas.height;
+          // We intentionally don't resize the canvas, and leave that up to the user script:
+          // let elCanvas = document.querySelector('#result_canvas');
+          // elCanvas.width = parseInt(e.data.width);
+          // elCanvas.height = parseInt(e.data.height);
+          window.VIEWPORT_WIDTH = parseInt(e.data.height);
+          window.VIEWPORT_HEIGHT = parseInt(e.data.width);
           window.parent.postMessage({ tx: 'sandbox-resize-confirm'}, e.origin);
           break;
         default:
