@@ -87,13 +87,12 @@
     }
   });
 
-  // Create a promise to wait for the editor instance
+  // Waiting for Godot
   const waitForEditorInstance = () => {
     return new Promise((resolve) => {
-      // This callback is passed to the Monaco component
       setEditorInstance = (instance) => {
         monacoEditor = instance.detail;
-        resolve(monacoEditor);  // Resolve promise when editor is ready
+        resolve(monacoEditor);
       };
     });
   };
@@ -120,6 +119,24 @@
     return true;
   };
 
+  // Global status changing stuff
+  const canvasReady = () => {
+    $isReady = true;
+  };
+
+  const buildSuccess = () => {
+    Log.scriptSuccess("build completed");
+    const flashCol = $isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1];
+    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR);
+    $isPlaying = true;
+  };
+
+  const buildError = () => {
+    const flashCol = $isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1];
+    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR);
+    $isPlaying = false;
+  };
+
   // UI actions   
   const reqOpenArchiveDrawer = async () => {
     if (!$drawerStore.open){
@@ -144,23 +161,6 @@
   const reqResetPanes = () => paneSizes.set({...panes.resetPaneSizes()});
 
   let autoBuildTimeoutID: number;
-
-  const canvasReady = () => {
-    $isReady = true;
-  };
-
-  const buildSuccess = () => {
-    Log.scriptSuccess("build completed");
-    const flashCol = $isDark ? cfg.BUILD_COL_SUCCESS[0] : cfg.BUILD_COL_SUCCESS[1];
-    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR);
-    $isPlaying = true;
-  };
-
-  const buildError = () => {
-    const flashCol = $isDark ? cfg.BUILD_COL_FAILURE[0] : cfg.BUILD_COL_FAILURE[1];
-    pulseEditorBackground(flashCol, cfg.BUILD_FLASH_DUR);
-    $isPlaying = false;
-  };
 
   const reqBuild = async () => {
     await reqClearStopAnimation();
@@ -399,10 +399,6 @@
     if (browser) {
       document.querySelector('body').setAttribute('data-theme', cfg.APP_THEME);
 
-      // canvasframe = document.querySelector("#canvasframe");
-      // canvasframeWindow = canvasframe.contentWindow;
-      // canvasframeWindow.console.error = (e) => Log.scriptError(e);
-
       await waitForEditorInstance(); 
       $isReady = true;
       
@@ -509,6 +505,7 @@
       window.removeEventListener('key-build-script', reqBuild);
       window.removeEventListener('key-stop-playback', reqClearStopAnimation);
 
+      window.removeEventListener('canvas-ready', canvasReady);
       window.removeEventListener('build-success', buildSuccess);
       window.removeEventListener('build-error', buildError);
 
