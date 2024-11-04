@@ -126,6 +126,11 @@
   let selectedOption: string = 'raw';
   let shareableURL: string = '';
 
+
+  const defaultView       = 0;
+  const defaultAutoBuild  = 0;
+  const defaultReadOnly   = 0;
+
   $: makeURL = () => {
     if (extResourceValue.trim() === '') {
       shareableURL = ''; 
@@ -142,14 +147,22 @@
         ? `${cfg.APP_HOST_PATH}get-gist?q=${encodedURI}`
         : `${cfg.APP_HOST_PATH}gist/${encodedURI}`;
     }
+
+    if (urlView != defaultView)           shareableURL += `${shareableURL.includes('?') ? '&' : '?'}view=${urlView}`;
+    if (urlAutoBuild != defaultAutoBuild) shareableURL += `${shareableURL.includes('?') ? '&' : '?'}autobuild=${urlAutoBuild}`;
+    if (urlReadOnly != defaultReadOnly)   shareableURL += `${shareableURL.includes('?') ? '&' : '?'}readonly=${urlReadOnly}`;
   };
 
   $: iframeWidth            = null;
   $: iframeHeight           = null;
-  $: iframeView             = 0;
-  $: iframeAutoBuild        = 0;
-  $: iframeReadOnly         = 0;
   $: iframeAllowFullscreen  = 1;
+  $: urlView                = 0;
+  $: urlAutoBuild           = 0;
+  $: urlReadOnly            = 0;
+
+  $: if (urlView !== undefined)       makeURL();
+  $: if (urlAutoBuild !== undefined)  makeURL();
+  $: if (urlReadOnly !== undefined)   makeURL();
 
   // Icons
   import { Icon } from 'svelte-hero-icons';
@@ -258,37 +271,37 @@
 
                   <div class="flex items-center justify-center my-1">
                     <RadioGroup class="mx-1">
-                      <RadioItem bind:group={iframeView} name="iframe-view" value={0} title="Split-Pane">
+                      <RadioItem bind:group={urlView} name="url-view" value={0} title="Split-Pane">
                         <Icon src="{hero.RectangleGroup}" size="16" class="mx-0 my-1" solid/>
                       </RadioItem>
-                      <RadioItem bind:group={iframeView} name="iframe-view" value={1} title="View Code">
+                      <RadioItem bind:group={urlView} name="url-view" value={1} title="View Code">
                         <Icon src="{hero.CodeBracket}" size="16" class="mx-0 my-1" solid/>
                       </RadioItem>
-                      <RadioItem bind:group={iframeView} name="iframe-view" value={2} title="View Canvas">
+                      <RadioItem bind:group={urlView} name="url-view" value={2} title="View Canvas">
                         <Icon src="{hero.Photo}" size="16" class="mx-0 my-1" solid/>
                       </RadioItem>
-                      <RadioItem bind:group={iframeView} name="iframe-view" value={3} title="View Controls">
+                      <RadioItem bind:group={urlView} name="url-view" value={3} title="View Controls">
                         <Icon src="{hero.AdjustmentsHorizontal}" size="16" class="mx-0 my-1" solid/>
                       </RadioItem>
                     </RadioGroup>
                   </div>
                   <div class="flex items-center justify-center my-1">
-                    <RadioGroup class="mx-1">
+                    <RadioGroup class="mx-1" on:change={makeURL}>
                       <RadioItem 
-                        bind:group={iframeAutoBuild} 
-                        on:click={() => {iframeAutoBuild = +!iframeAutoBuild;}}
-                        name="iframe-autobuild" value={1} title="Auto-Build"
+                        bind:group={urlAutoBuild} 
+                        on:click={() => {urlAutoBuild = +!urlAutoBuild;}}
+                        name="url-autobuild" value={+!defaultAutoBuild} title="Auto-Build"
                       >
                         <Icon src="{hero.PlayCircle}" size="16" class="mx-0 my-1" solid/>
                       </RadioItem>
                     </RadioGroup>
-                    <RadioGroup class="mx-1">
+                    <RadioGroup class="mx-1" on:change={makeURL}>
                       <RadioItem 
-                        bind:group={iframeReadOnly} 
-                        on:click={() => {iframeReadOnly = +!iframeReadOnly;}}
-                        name="iframe-readonly" value={1} title="Read-Only"
+                        bind:group={urlReadOnly} 
+                        on:click={() => {urlReadOnly = +!urlReadOnly;}}
+                        name="url-readonly" value={+!defaultReadOnly} title="Read-Only"
                       >
-                        <Icon src="{iframeReadOnly ? hero.LockClosed : hero.LockOpen}" size="16" class="mx-0 my-1" solid/>
+                        <Icon src="{urlReadOnly ? hero.LockClosed : hero.LockOpen}" size="16" class="mx-0 my-1" solid/>
                       </RadioItem>
                     </RadioGroup>
                   </div>
@@ -306,12 +319,8 @@
                   `\n  width="${iframeWidth || 800}" `+
                   `\n  height="${iframeHeight || 600}" ` + 
                   `${iframeAllowFullscreen ? '\n  allow="fullscreen" ' : ''}` + 
-                  `\n  src="${shareableURL || '[PROVIDE URL ABOVE]'}${shareableURL.includes('?') ? '&' : '?'}` +
-                    `view=${iframeView}&` +
-                    `autobuild=${iframeAutoBuild}&` +
-                    `readonly=${iframeReadOnly}` +
-                  `" ` + 
-                  `\n  title="${cfg.APP_TITLE}">`}>                    
+                  `\n  src="${shareableURL || '[PROVIDE URL ABOVE]'}" ` + 
+                  `\n  title="${cfg.APP_TITLE}">`}>
                   </CodeBlock>
                   <div>
                     <div class="flex items-center justify-center">
