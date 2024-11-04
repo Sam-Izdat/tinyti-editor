@@ -204,6 +204,7 @@
     StackTrace.clear();
     await reqStopAnimation();
   };
+  
   const reqResize = (reqWidth = null, reqHeight = null) => {
     let width = 0;
     let height = 0;
