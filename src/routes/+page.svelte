@@ -135,8 +135,7 @@
   };
 
   const reqBuild = async () => {
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
     let buildSuccessful = true;
     let editorVal = monacoEditor.getValue();
 
@@ -160,6 +159,10 @@
     harbor.txStop(canvasframeWindow);
   };
 
+  const reqClearStopAnimation = () => {    
+    Log.clearScriptLog();
+    reqStopAnimation();
+  };
   const reqResize = (reqWidth = null, reqHeight = null) => {
     reqStopAnimation();
     let width = 0;
@@ -192,8 +195,7 @@
     } else {
       docHandler.newDoc();
     }
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   };
 
   const reqLoadDoc = async (uuid: string, adapter: string) => {
@@ -211,8 +213,7 @@
       docHandler.loadDoc(uuid, adapter); 
       drawerStore.close();
     }
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   };
 
   const reqForkDoc = () => {
@@ -227,8 +228,7 @@
       docHandler.forkDoc();
     }
     reqRenameDoc();
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   };
 
   const reqImportFile = (content: string, baseFilename?: string) => {
@@ -244,8 +244,7 @@
     }
     modalStore.close();
     reqRenameDoc(baseFilename ?? '');
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   };
 
   const reqExportFile = () => {
@@ -312,8 +311,7 @@
     } else {
       docHandler.loadVersion(parseInt(v));
     }
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   };
 
   const reqRevertDoc = () => {
@@ -327,8 +325,7 @@
     } else {
       Log.toastInfo('no changes to revert')
     }
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   }
 
   const reqRenameDoc = (name?: string) => {
@@ -340,8 +337,7 @@
       txtConfirm: 'Rename',
       onConfirm: (inputVal) => { docHandler.renameDoc(inputVal); }
     })
-    reqStopAnimation();
-    Log.clearScriptLog();
+    reqClearStopAnimation();
   };
 
   const reqSaveMenu = () => {
@@ -439,13 +435,14 @@
 
       // Custom events from keybind
       observeKeyboard();
-      window.addEventListener('save-document', reqSaveDoc);
-      window.addEventListener('save-document-new-version', reqSaveDocNewVersion);
-      window.addEventListener('new-document', reqNewDoc);
-      window.addEventListener('rename-document', reqRenameDoc);
-      window.addEventListener('archive-shelf', reqOpenArchiveDrawer);
-      window.addEventListener('switch-view', navHandler.switchViewEvent);
-      window.addEventListener('build-script', reqBuild);
+      window.addEventListener('key-switch-view', navHandler.switchViewEvent);
+      window.addEventListener('key-save-document', reqSaveDoc);
+      window.addEventListener('key-save-document-new-version', reqSaveDocNewVersion);
+      window.addEventListener('key-new-document', reqNewDoc);
+      window.addEventListener('key-rename-document', reqRenameDoc);
+      window.addEventListener('key-archive-shelf', reqOpenArchiveDrawer);
+      window.addEventListener('key-build-script', reqBuild);
+      window.addEventListener('key-stop-playback', reqClearStopAnimation);
 
       window.addEventListener('build-success', buildSuccess);
       window.addEventListener('build-error', buildError);
@@ -459,13 +456,14 @@
     if (browser) {
       harbor.rxDispose();
 
-      window.removeEventListener('save-document', reqSaveDoc);
-      window.removeEventListener('save-document-new-version', reqSaveDocNewVersion);
-      window.removeEventListener('new-document', reqNewDoc);
-      window.removeEventListener('rename-document', reqRenameDoc);
-      window.removeEventListener('archive-shelf', reqOpenArchiveDrawer);
-      window.removeEventListener('switch-view', navHandler.switchViewEvent);
-      window.removeEventListener('build-script', reqBuild);
+      window.removeEventListener('key-switch-view', navHandler.switchViewEvent);
+      window.removeEventListener('key-save-document', reqSaveDoc);
+      window.removeEventListener('key-save-document-new-version', reqSaveDocNewVersion);
+      window.removeEventListener('key-new-document', reqNewDoc);
+      window.removeEventListener('key-rename-document', reqRenameDoc);
+      window.removeEventListener('key-archive-shelf', reqOpenArchiveDrawer);
+      window.removeEventListener('key-build-script', reqBuild);
+      window.removeEventListener('key-stop-playback', reqClearStopAnimation);
 
       window.removeEventListener('build-success', buildSuccess);
       window.removeEventListener('build-error', buildError);

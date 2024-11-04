@@ -31,8 +31,12 @@
         <td>alt+{key.keyArchive}</td>
       </tr>
       <tr>
-        <td>Build (without saving):</td>
+        <td>Build / Play (without saving):</td>
         <td>alt+{key.keyBuild}</td>
+      </tr>
+      <tr>
+        <td>Stop / Clear Status:</td>
+        <td>alt+{key.keyStop}</td>
       </tr>
       <tr>
         <td>View Split:</td>
