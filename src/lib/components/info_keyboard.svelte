@@ -12,11 +12,11 @@
     <tbody>
       <tr>
         <td>New Script:</td>
-        <td>alt+{key.keyNewDoc} / ctrl+{key.keyNewDoc}</td>
+        <td>alt+{key.keyNewDoc}</td>
       </tr>
       <tr>
         <td>Save Script:</td>
-        <td>alt+{key.keySaveDoc}</td>
+        <td>alt+{key.keySaveDoc} / ctrl+{key.keySaveDoc}</td>
       </tr>
       <tr>
         <td>Save New Script Version:</td>
