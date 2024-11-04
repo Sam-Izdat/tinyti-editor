@@ -66,32 +66,28 @@
       return true; // (try to) prevent error from propagating to the console
     };
     window.addEventListener('error', e => {
-        // if (e.error && e.error.stack) {
-        //   const stackLines = e.error.stack.split("\n");
+        if (e.error && e.error.stack) {
+          const stackLines = e.error.stack.split("\n");
           
-        //   stackLines.forEach(line => {
-        //     let step = window.__parseLine(line);
-        //     if (step) window.__stackTrace.push(step);
-        //     window.txStackLine(step[0], step[1], step[2]);
-        //   });
-        // }
+          stackLines.forEach(line => {
+            let step = window.__parseLine(line);
+            if (step) window.__stackTrace.push(step);
+            window.txStackLine(step[0], step[1], step[2]);
+          });
+        }
         const { message, source, lineno, colno, error } = e;
         const err = `Unhandled error caught by event listener: message: ${message} @ ${source}, Line: ${lineno}, Column: ${colno}`;
         console.log(err);
-        // console.error(e.message);
         window.txError(error.name ?? 'error', message);
         console.log(err);
-        // console.log('EVENT-LISTENER DUMP', e);
         e.preventDefault();
     });
     window.onunhandledrejection = (e) => {
       const err = 'caught in onunhandledrejection: ' + e.reason || 'unknown async error';
       const err_hash = window.__generateErrorHash(e.reason, {});
       console.log(err);
-      // console.error(e.reason);
       window.txError('PromiseRejection', e.reason, err_hash);
-      console.log(err);
-      // console.log('UNHANDLED-REJECTION DUMP', e);
+      console.log(err);      
       e.preventDefault();
       if (e.reason && e.reason.stack) {
         const stackLines = e.reason.stack.split("\n");
@@ -105,17 +101,6 @@
 <body>
   <canvas id="result_canvas"></canvas>
   <script>
-
-    /*
-
-    tx-harbor-build
-    tx-harbor-stop
-    tx-harbor-status
-
-    tx-sandbox-build-success
-    tx-sandbox-build-error
-    */
-
     window.addEventListener('message', (e) => rxHarbor(e));
 
     // receive (serialized w/ structuredClone)
@@ -224,9 +209,7 @@
           const err = `Unhandled error caught by eval catch: message: ${message}`;
           const err_hash = window.__generateErrorHash(message, e.stack ?? {});
           console.log(err);
-          // console.error(e.message);
           window.txError(name, message, err_hash);
-          // console.log('EVAL-CATCH DUMP', e);
           if (e.stack) {
             const stackLines = e.stack.split("\n");
             window.__processStackLines(stackLines, err_hash);
@@ -241,12 +224,10 @@
         const err = `Unhandled error caught by promise catch: message: ${message}`;
         const err_hash = window.__generateErrorHash(message, e.stack ?? {});
         console.log(err);
-        // console.error(e.message);
         window.txError(e.name, message, err_hash);
         if (e.name === 'TaichiJSError' && e.info?.code) {
           window.txErrorFrag(e.info.code, err_hash);
         }
-        // console.log('PROMISE-CATCH DUMP', name, e.info);
         if (e.stack) {
           const stackLines = e.stack.split("\n");
           window.__processStackLines(stackLines, err_hash);
@@ -258,24 +239,6 @@
         window.txReady();
     });
 
-    // wrt. Taichi errors, see:
-    // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L104
-    // https://github.com/Sam-Izdat/tinyti.js/blob/52a22be03351f0434186e833e725e35adf02a094/src/language/frontend/ParsedFunction.ts#L143
-
-
-    //   try {
-    //     eval(`(async () => {\n${script}\n})()`);
-    //   } catch (e) {
-    //     if (e.stack) {
-    //       const stackLines = e.stack.split("\n");
-    //       stackLines.forEach(line => {
-    //         let step = window.__parseLine(line);
-    //         if (step) window.__stackTrace.push(step);
-    //       });
-    //     }
-    //     console.error(e.reason || 'unknown error')
-    //   }
-    //   return true;
     let elCanvas = document.querySelector('#result_canvas')
     elCanvas.width = window.VIEWPORT_WIDTH;
     elCanvas.height = window.VIEWPORT_HEIGHT;
