@@ -1,4 +1,5 @@
-export const strInitialEditorContents = `let main = async () => {
+export const strInitialEditorContents = `// from https://taichi-js.com/playground/fractal-on-cloth
+let main = async () => {
   await ti.init();
 
   let htmlCanvas = document.getElementById('result_canvas');
